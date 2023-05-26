@@ -13,7 +13,7 @@ type Ingredient struct {
 // Fields of the Ingredient.
 func (Ingredient) Fields() []ent.Field {
 	return []ent.Field{
-		field.String("name"),
+		field.String("name").Unique(),
 		field.Uint("quantity"),
 	}
 }

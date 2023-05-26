@@ -42,8 +42,13 @@ func (i IngredientStore) GetIngredients(ctx context.Context) ([]ingredients.Ingr
 }
 
 func (i IngredientStore) Store(ctx context.Context, ingredients ...ingredients.Ingredient) error {
-	for _, ingredient := range ingredients {
-		_, err := i.client.Ingredient.Create().SetName(ingredient.Name).SetQuantity(ingredient.Quantity).Save(ctx)
+	for _, newIngredient := range ingredients {
+		err := i.client.Ingredient.
+			Create().
+			SetName(newIngredient.Name).
+			SetQuantity(newIngredient.Quantity).
+			OnConflict().
+			AddQuantity(newIngredient.Quantity).Exec(ctx)
 		if err != nil {
 			return err
 		}

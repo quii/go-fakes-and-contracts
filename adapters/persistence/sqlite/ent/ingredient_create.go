@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 
+	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/quii/go-fakes-and-contracts/adapters/persistence/sqlite/ent/ingredient"
@@ -17,6 +18,7 @@ type IngredientCreate struct {
 	config
 	mutation *IngredientMutation
 	hooks    []Hook
+	conflict []sql.ConflictOption
 }
 
 // SetName sets the "name" field.
@@ -97,6 +99,7 @@ func (ic *IngredientCreate) createSpec() (*Ingredient, *sqlgraph.CreateSpec) {
 		_node = &Ingredient{config: ic.config}
 		_spec = sqlgraph.NewCreateSpec(ingredient.Table, sqlgraph.NewFieldSpec(ingredient.FieldID, field.TypeInt))
 	)
+	_spec.OnConflict = ic.conflict
 	if value, ok := ic.mutation.Name(); ok {
 		_spec.SetField(ingredient.FieldName, field.TypeString, value)
 		_node.Name = value
@@ -108,10 +111,198 @@ func (ic *IngredientCreate) createSpec() (*Ingredient, *sqlgraph.CreateSpec) {
 	return _node, _spec
 }
 
+// OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
+// of the `INSERT` statement. For example:
+//
+//	client.Ingredient.Create().
+//		SetName(v).
+//		OnConflict(
+//			// Update the row with the new values
+//			// the was proposed for insertion.
+//			sql.ResolveWithNewValues(),
+//		).
+//		// Override some of the fields with custom
+//		// update values.
+//		Update(func(u *ent.IngredientUpsert) {
+//			SetName(v+v).
+//		}).
+//		Exec(ctx)
+func (ic *IngredientCreate) OnConflict(opts ...sql.ConflictOption) *IngredientUpsertOne {
+	ic.conflict = opts
+	return &IngredientUpsertOne{
+		create: ic,
+	}
+}
+
+// OnConflictColumns calls `OnConflict` and configures the columns
+// as conflict target. Using this option is equivalent to using:
+//
+//	client.Ingredient.Create().
+//		OnConflict(sql.ConflictColumns(columns...)).
+//		Exec(ctx)
+func (ic *IngredientCreate) OnConflictColumns(columns ...string) *IngredientUpsertOne {
+	ic.conflict = append(ic.conflict, sql.ConflictColumns(columns...))
+	return &IngredientUpsertOne{
+		create: ic,
+	}
+}
+
+type (
+	// IngredientUpsertOne is the builder for "upsert"-ing
+	//  one Ingredient node.
+	IngredientUpsertOne struct {
+		create *IngredientCreate
+	}
+
+	// IngredientUpsert is the "OnConflict" setter.
+	IngredientUpsert struct {
+		*sql.UpdateSet
+	}
+)
+
+// SetName sets the "name" field.
+func (u *IngredientUpsert) SetName(v string) *IngredientUpsert {
+	u.Set(ingredient.FieldName, v)
+	return u
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *IngredientUpsert) UpdateName() *IngredientUpsert {
+	u.SetExcluded(ingredient.FieldName)
+	return u
+}
+
+// SetQuantity sets the "quantity" field.
+func (u *IngredientUpsert) SetQuantity(v uint) *IngredientUpsert {
+	u.Set(ingredient.FieldQuantity, v)
+	return u
+}
+
+// UpdateQuantity sets the "quantity" field to the value that was provided on create.
+func (u *IngredientUpsert) UpdateQuantity() *IngredientUpsert {
+	u.SetExcluded(ingredient.FieldQuantity)
+	return u
+}
+
+// AddQuantity adds v to the "quantity" field.
+func (u *IngredientUpsert) AddQuantity(v uint) *IngredientUpsert {
+	u.Add(ingredient.FieldQuantity, v)
+	return u
+}
+
+// UpdateNewValues updates the mutable fields using the new values that were set on create.
+// Using this option is equivalent to using:
+//
+//	client.Ingredient.Create().
+//		OnConflict(
+//			sql.ResolveWithNewValues(),
+//		).
+//		Exec(ctx)
+func (u *IngredientUpsertOne) UpdateNewValues() *IngredientUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
+	return u
+}
+
+// Ignore sets each column to itself in case of conflict.
+// Using this option is equivalent to using:
+//
+//	client.Ingredient.Create().
+//	    OnConflict(sql.ResolveWithIgnore()).
+//	    Exec(ctx)
+func (u *IngredientUpsertOne) Ignore() *IngredientUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithIgnore())
+	return u
+}
+
+// DoNothing configures the conflict_action to `DO NOTHING`.
+// Supported only by SQLite and PostgreSQL.
+func (u *IngredientUpsertOne) DoNothing() *IngredientUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.DoNothing())
+	return u
+}
+
+// Update allows overriding fields `UPDATE` values. See the IngredientCreate.OnConflict
+// documentation for more info.
+func (u *IngredientUpsertOne) Update(set func(*IngredientUpsert)) *IngredientUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(update *sql.UpdateSet) {
+		set(&IngredientUpsert{UpdateSet: update})
+	}))
+	return u
+}
+
+// SetName sets the "name" field.
+func (u *IngredientUpsertOne) SetName(v string) *IngredientUpsertOne {
+	return u.Update(func(s *IngredientUpsert) {
+		s.SetName(v)
+	})
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *IngredientUpsertOne) UpdateName() *IngredientUpsertOne {
+	return u.Update(func(s *IngredientUpsert) {
+		s.UpdateName()
+	})
+}
+
+// SetQuantity sets the "quantity" field.
+func (u *IngredientUpsertOne) SetQuantity(v uint) *IngredientUpsertOne {
+	return u.Update(func(s *IngredientUpsert) {
+		s.SetQuantity(v)
+	})
+}
+
+// AddQuantity adds v to the "quantity" field.
+func (u *IngredientUpsertOne) AddQuantity(v uint) *IngredientUpsertOne {
+	return u.Update(func(s *IngredientUpsert) {
+		s.AddQuantity(v)
+	})
+}
+
+// UpdateQuantity sets the "quantity" field to the value that was provided on create.
+func (u *IngredientUpsertOne) UpdateQuantity() *IngredientUpsertOne {
+	return u.Update(func(s *IngredientUpsert) {
+		s.UpdateQuantity()
+	})
+}
+
+// Exec executes the query.
+func (u *IngredientUpsertOne) Exec(ctx context.Context) error {
+	if len(u.create.conflict) == 0 {
+		return errors.New("ent: missing options for IngredientCreate.OnConflict")
+	}
+	return u.create.Exec(ctx)
+}
+
+// ExecX is like Exec, but panics if an error occurs.
+func (u *IngredientUpsertOne) ExecX(ctx context.Context) {
+	if err := u.create.Exec(ctx); err != nil {
+		panic(err)
+	}
+}
+
+// Exec executes the UPSERT query and returns the inserted/updated ID.
+func (u *IngredientUpsertOne) ID(ctx context.Context) (id int, err error) {
+	node, err := u.create.Save(ctx)
+	if err != nil {
+		return id, err
+	}
+	return node.ID, nil
+}
+
+// IDX is like ID, but panics if an error occurs.
+func (u *IngredientUpsertOne) IDX(ctx context.Context) int {
+	id, err := u.ID(ctx)
+	if err != nil {
+		panic(err)
+	}
+	return id
+}
+
 // IngredientCreateBulk is the builder for creating many Ingredient entities in bulk.
 type IngredientCreateBulk struct {
 	config
 	builders []*IngredientCreate
+	conflict []sql.ConflictOption
 }
 
 // Save creates the Ingredient entities in the database.
@@ -137,6 +328,7 @@ func (icb *IngredientCreateBulk) Save(ctx context.Context) ([]*Ingredient, error
 					_, err = mutators[i+1].Mutate(root, icb.builders[i+1].mutation)
 				} else {
 					spec := &sqlgraph.BatchCreateSpec{Nodes: specs}
+					spec.OnConflict = icb.conflict
 					// Invoke the actual operation on the latest mutation in the chain.
 					if err = sqlgraph.BatchCreate(ctx, icb.driver, spec); err != nil {
 						if sqlgraph.IsConstraintError(err) {
@@ -187,6 +379,142 @@ func (icb *IngredientCreateBulk) Exec(ctx context.Context) error {
 // ExecX is like Exec, but panics if an error occurs.
 func (icb *IngredientCreateBulk) ExecX(ctx context.Context) {
 	if err := icb.Exec(ctx); err != nil {
+		panic(err)
+	}
+}
+
+// OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
+// of the `INSERT` statement. For example:
+//
+//	client.Ingredient.CreateBulk(builders...).
+//		OnConflict(
+//			// Update the row with the new values
+//			// the was proposed for insertion.
+//			sql.ResolveWithNewValues(),
+//		).
+//		// Override some of the fields with custom
+//		// update values.
+//		Update(func(u *ent.IngredientUpsert) {
+//			SetName(v+v).
+//		}).
+//		Exec(ctx)
+func (icb *IngredientCreateBulk) OnConflict(opts ...sql.ConflictOption) *IngredientUpsertBulk {
+	icb.conflict = opts
+	return &IngredientUpsertBulk{
+		create: icb,
+	}
+}
+
+// OnConflictColumns calls `OnConflict` and configures the columns
+// as conflict target. Using this option is equivalent to using:
+//
+//	client.Ingredient.Create().
+//		OnConflict(sql.ConflictColumns(columns...)).
+//		Exec(ctx)
+func (icb *IngredientCreateBulk) OnConflictColumns(columns ...string) *IngredientUpsertBulk {
+	icb.conflict = append(icb.conflict, sql.ConflictColumns(columns...))
+	return &IngredientUpsertBulk{
+		create: icb,
+	}
+}
+
+// IngredientUpsertBulk is the builder for "upsert"-ing
+// a bulk of Ingredient nodes.
+type IngredientUpsertBulk struct {
+	create *IngredientCreateBulk
+}
+
+// UpdateNewValues updates the mutable fields using the new values that
+// were set on create. Using this option is equivalent to using:
+//
+//	client.Ingredient.Create().
+//		OnConflict(
+//			sql.ResolveWithNewValues(),
+//		).
+//		Exec(ctx)
+func (u *IngredientUpsertBulk) UpdateNewValues() *IngredientUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
+	return u
+}
+
+// Ignore sets each column to itself in case of conflict.
+// Using this option is equivalent to using:
+//
+//	client.Ingredient.Create().
+//		OnConflict(sql.ResolveWithIgnore()).
+//		Exec(ctx)
+func (u *IngredientUpsertBulk) Ignore() *IngredientUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithIgnore())
+	return u
+}
+
+// DoNothing configures the conflict_action to `DO NOTHING`.
+// Supported only by SQLite and PostgreSQL.
+func (u *IngredientUpsertBulk) DoNothing() *IngredientUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.DoNothing())
+	return u
+}
+
+// Update allows overriding fields `UPDATE` values. See the IngredientCreateBulk.OnConflict
+// documentation for more info.
+func (u *IngredientUpsertBulk) Update(set func(*IngredientUpsert)) *IngredientUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(update *sql.UpdateSet) {
+		set(&IngredientUpsert{UpdateSet: update})
+	}))
+	return u
+}
+
+// SetName sets the "name" field.
+func (u *IngredientUpsertBulk) SetName(v string) *IngredientUpsertBulk {
+	return u.Update(func(s *IngredientUpsert) {
+		s.SetName(v)
+	})
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *IngredientUpsertBulk) UpdateName() *IngredientUpsertBulk {
+	return u.Update(func(s *IngredientUpsert) {
+		s.UpdateName()
+	})
+}
+
+// SetQuantity sets the "quantity" field.
+func (u *IngredientUpsertBulk) SetQuantity(v uint) *IngredientUpsertBulk {
+	return u.Update(func(s *IngredientUpsert) {
+		s.SetQuantity(v)
+	})
+}
+
+// AddQuantity adds v to the "quantity" field.
+func (u *IngredientUpsertBulk) AddQuantity(v uint) *IngredientUpsertBulk {
+	return u.Update(func(s *IngredientUpsert) {
+		s.AddQuantity(v)
+	})
+}
+
+// UpdateQuantity sets the "quantity" field to the value that was provided on create.
+func (u *IngredientUpsertBulk) UpdateQuantity() *IngredientUpsertBulk {
+	return u.Update(func(s *IngredientUpsert) {
+		s.UpdateQuantity()
+	})
+}
+
+// Exec executes the query.
+func (u *IngredientUpsertBulk) Exec(ctx context.Context) error {
+	for i, b := range u.create.builders {
+		if len(b.conflict) != 0 {
+			return fmt.Errorf("ent: OnConflict was set for builder %d. Set it on the IngredientCreateBulk instead", i)
+		}
+	}
+	if len(u.create.conflict) == 0 {
+		return errors.New("ent: missing options for IngredientCreateBulk.OnConflict")
+	}
+	return u.create.Exec(ctx)
+}
+
+// ExecX is like Exec, but panics if an error occurs.
+func (u *IngredientUpsertBulk) ExecX(ctx context.Context) {
+	if err := u.create.Exec(ctx); err != nil {
 		panic(err)
 	}
 }

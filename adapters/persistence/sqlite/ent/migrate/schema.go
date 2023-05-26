@@ -11,7 +11,7 @@ var (
 	// IngredientsColumns holds the columns for the "ingredients" table.
 	IngredientsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
-		{Name: "name", Type: field.TypeString},
+		{Name: "name", Type: field.TypeString, Unique: true},
 		{Name: "quantity", Type: field.TypeUint},
 	}
 	// IngredientsTable holds the schema information for the "ingredients" table.

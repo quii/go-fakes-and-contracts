@@ -6,7 +6,7 @@ import (
 )
 
 type IngredientStore struct {
-	ingredients []ingredients.Ingredient
+	ingredients ingredients.Ingredients
 }
 
 func NewIngredientStore() *IngredientStore {
@@ -18,7 +18,13 @@ func (i *IngredientStore) GetIngredients(ctx context.Context) ([]ingredients.Ing
 }
 
 func (i *IngredientStore) Store(ctx context.Context, ingredients ...ingredients.Ingredient) error {
-	i.ingredients = append(i.ingredients, ingredients...)
+	for idx, ingredient := range ingredients {
+		if i.ingredients.Has(ingredient) {
+			i.ingredients[idx].Quantity += ingredient.Quantity
+		} else {
+			i.ingredients = append(i.ingredients, ingredient)
+		}
+	}
 	return nil
 }
 

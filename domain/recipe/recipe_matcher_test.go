@@ -11,25 +11,29 @@ import (
 )
 
 func TestRecipeMatcher(t *testing.T) {
+	// for local, snappy integration test with a fake (which we can be confident is correct due to it conforming to the store contract)
 	t.Run("with in memory store", func(t *testing.T) {
-		RecipeMatcherTest(t, func() CloseAbleStore {
+		RecipeMatcherTest(t, func() CloseableStore {
 			return inmemory.NewIngredientStore()
 		})
 	})
 
+	// we can run a broader integration test with a "real" db if we wish, using this contract approach
 	t.Run("with sqlite", func(t *testing.T) {
-		RecipeMatcherTest(t, func() CloseAbleStore {
-			return sqlite.NewIngredientStore()
-		})
+		if !testing.Short() {
+			RecipeMatcherTest(t, func() CloseableStore {
+				return sqlite.NewIngredientStore()
+			})
+		}
 	})
 }
 
-type CloseAbleStore interface {
+type CloseableStore interface {
 	recipe.Store
 	Close()
 }
 
-func RecipeMatcherTest(t *testing.T, newStore func() CloseAbleStore) {
+func RecipeMatcherTest(t *testing.T, newStore func() CloseableStore) {
 	t.Run("if we have no ingredients we can't make anything", func(t *testing.T) {
 		store := newStore()
 		t.Cleanup(store.Close)
