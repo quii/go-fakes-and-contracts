@@ -25,12 +25,6 @@ func NewIngredientStore() *IngredientStore {
 	return &IngredientStore{client: client}
 }
 
-func (i IngredientStore) Close() {
-	if err := i.client.Close(); err != nil {
-		log.Println("couldn't close sqlite3 client", err)
-	}
-}
-
 func (i IngredientStore) GetIngredients(ctx context.Context) ([]ingredients.Ingredient, error) {
 	all, err := i.client.Ingredient.Query().All(ctx)
 	if err != nil {
@@ -55,4 +49,10 @@ func (i IngredientStore) Store(ctx context.Context, ingredients ...ingredients.I
 		}
 	}
 	return nil
+}
+
+func (i IngredientStore) Close() {
+	if err := i.client.Close(); err != nil {
+		log.Println("couldn't close sqlite3 client", err)
+	}
 }
