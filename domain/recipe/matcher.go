@@ -19,29 +19,25 @@ func NewMatcher(recipes Book, ingredientStore Store) *Matcher {
 }
 
 func (m Matcher) SuggestRecipes(ctx context.Context) ([]Recipe, error) {
+	availableIngredients, err := m.ingredientStore.GetIngredients(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	var suggestions []Recipe
 	for _, recipe := range m.recipeBook.GetRecipes() {
-		canMake, err := m.haveIngredients(ctx, recipe)
-		if err != nil {
-			return nil, err
-		}
-		if canMake {
+		if haveIngredients(availableIngredients, recipe) {
 			suggestions = append(suggestions, recipe)
 		}
 	}
 	return suggestions, nil
 }
 
-func (m Matcher) haveIngredients(ctx context.Context, recipe Recipe) (bool, error) {
-	availableIngredients, err := m.ingredientStore.GetIngredients(ctx)
-	if err != nil {
-		return false, err
-	}
-
+func haveIngredients(availableIngredients ingredients.Ingredients, recipe Recipe) bool {
 	for _, ingredient := range recipe.Ingredients {
-		if !ingredients.Ingredients(availableIngredients).Has(ingredient) {
-			return false, nil
+		if !availableIngredients.Has(ingredient) {
+			return false
 		}
 	}
-	return true, nil
+	return true
 }
