@@ -18,7 +18,6 @@ func NewIngredientStore() *IngredientStore {
 	if err != nil {
 		log.Fatalf("failed opening connection to sqlite: %v", err)
 	}
-	// Run the auto migration tool.
 	if err := client.Schema.Create(context.Background()); err != nil {
 		log.Fatalf("failed creating schema resources: %v", err)
 	}
@@ -33,10 +32,7 @@ func (i IngredientStore) GetIngredients(ctx context.Context) ([]ingredients.Ingr
 	var allIngredients []ingredients.Ingredient
 
 	for _, ingredient := range all {
-		allIngredients = append(allIngredients, ingredients.Ingredient{
-			Name:     ingredient.Name,
-			Quantity: ingredient.Quantity,
-		})
+		allIngredients = append(allIngredients, mapDBIngredientToDomain(ingredient))
 	}
 	return allIngredients, nil
 }
@@ -48,7 +44,9 @@ func (i IngredientStore) Store(ctx context.Context, ingredients ...ingredients.I
 			SetName(newIngredient.Name).
 			SetQuantity(newIngredient.Quantity).
 			OnConflict().
-			AddQuantity(newIngredient.Quantity).Exec(ctx)
+			AddQuantity(newIngredient.Quantity).
+			Exec(ctx)
+
 		if err != nil {
 			return err
 		}
@@ -59,5 +57,12 @@ func (i IngredientStore) Store(ctx context.Context, ingredients ...ingredients.I
 func (i IngredientStore) Close() {
 	if err := i.client.Close(); err != nil {
 		log.Println("couldn't close sqlite3 client", err)
+	}
+}
+
+func mapDBIngredientToDomain(ingredient *ent.Ingredient) ingredients.Ingredient {
+	return ingredients.Ingredient{
+		Name:     ingredient.Name,
+		Quantity: ingredient.Quantity,
 	}
 }

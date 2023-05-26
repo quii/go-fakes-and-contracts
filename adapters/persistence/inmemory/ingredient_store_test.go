@@ -8,7 +8,7 @@ import (
 
 func TestInMemoryIngredientStore(t *testing.T) {
 	recipe.StoreContract{
-		NewStore: func() recipe.Store {
+		NewStore: func() recipe.CloseableStore {
 			return inmemory.NewIngredientStore()
 		},
 	}.Test(t)
