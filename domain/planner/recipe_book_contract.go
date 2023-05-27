@@ -34,6 +34,11 @@ func (r RecipeBookContract) Test(t *testing.T) {
 				MealType:    recipe.Breakfast,
 				Ingredients: []ingredients.Ingredient{{Name: "Bananas", Quantity: 2}},
 			},
+			{
+				Name:        "Pasta",
+				MealType:    recipe.Lunch,
+				Ingredients: []ingredients.Ingredient{{Name: "Pasta", Quantity: 1}},
+			},
 		}
 		assert.NoError(t, store.AddRecipes(ctx, want...))
 		got, err := store.GetRecipes(ctx)
