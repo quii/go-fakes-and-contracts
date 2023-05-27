@@ -2,7 +2,7 @@ package sqlite_test
 
 import (
 	"github.com/quii/go-fakes-and-contracts/adapters/persistence/sqlite"
-	"github.com/quii/go-fakes-and-contracts/domain/recipe"
+	"github.com/quii/go-fakes-and-contracts/domain/planner"
 	"testing"
 )
 
@@ -17,8 +17,8 @@ Try and compile, it fails, implement interface, try running test, it'll fail, no
 */
 
 func TestSQLiteIngredientStore(t *testing.T) {
-	recipe.StoreContract{
-		NewStore: func() recipe.CloseableStore {
+	planner.StoreContract{
+		NewStore: func() planner.CloseableStore {
 			return sqlite.NewIngredientStore()
 		},
 	}.Test(t)

@@ -1,4 +1,4 @@
-package recipe_test
+package planner_test
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 	"github.com/quii/go-fakes-and-contracts/adapters/persistence/inmemory"
 	"github.com/quii/go-fakes-and-contracts/adapters/persistence/sqlite"
 	"github.com/quii/go-fakes-and-contracts/domain/ingredients"
+	"github.com/quii/go-fakes-and-contracts/domain/planner"
 	"github.com/quii/go-fakes-and-contracts/domain/recipe"
 	"testing"
 )
@@ -29,7 +30,7 @@ func TestRecipeMatcher(t *testing.T) {
 }
 
 type CloseableStore interface {
-	recipe.Store
+	planner.Store
 	Close()
 }
 
@@ -57,11 +58,11 @@ func RecipeMatcherTest(t *testing.T, newStore func() CloseableStore) {
 		store := newStore()
 		t.Cleanup(store.Close)
 
-		store.Store(
+		assert.NoError(t, store.Store(
 			context.Background(),
 			ingredients.Ingredient{Name: "Bananas", Quantity: 2},
 			ingredients.Ingredient{Name: "Milk", Quantity: 1},
-		)
+		))
 		assertAvailableRecipes(t, store, []recipe.Recipe{bananaMilkshake})
 	})
 
@@ -69,21 +70,21 @@ func RecipeMatcherTest(t *testing.T, newStore func() CloseableStore) {
 		store := newStore()
 		t.Cleanup(store.Close)
 
-		store.Store(
+		assert.NoError(t, store.Store(
 			context.Background(),
 			ingredients.Ingredient{Name: "Bananas", Quantity: 2},
 			ingredients.Ingredient{Name: "Flour", Quantity: 1},
 			ingredients.Ingredient{Name: "Eggs", Quantity: 2},
 			ingredients.Ingredient{Name: "Milk", Quantity: 1},
-		)
+		))
 		assertAvailableRecipes(t, store, []recipe.Recipe{bananaMilkshake, bananaBread})
 	})
 
 }
 
-func assertAvailableRecipes(t *testing.T, ingredientStore recipe.Store, expectedRecipes []recipe.Recipe) {
+func assertAvailableRecipes(t *testing.T, ingredientStore planner.Store, expectedRecipes []recipe.Recipe) {
 	t.Helper()
-	suggestions, _ := recipe.NewMatcher(recipeStore, ingredientStore).SuggestRecipes(context.Background())
+	suggestions, _ := planner.New(recipeStore, ingredientStore).SuggestRecipes(context.Background())
 
 	// create a map to count occurrences of each recipe in the suggestions
 	suggestionCounts := make(map[string]int)
