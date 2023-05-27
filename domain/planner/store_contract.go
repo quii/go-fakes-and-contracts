@@ -7,21 +7,21 @@ import (
 	"testing"
 )
 
-type Store interface {
+type IngredientStore interface {
 	GetIngredients(ctx context.Context) ([]ingredients.Ingredient, error)
 	Store(context.Context, ...ingredients.Ingredient) error
 }
 
-type CloseableStore interface {
-	Store
+type CloseableIngredientStore interface {
+	IngredientStore
 	Close()
 }
 
-type StoreContract struct {
-	NewStore func() CloseableStore
+type IngredientStoreContract struct {
+	NewStore func() CloseableIngredientStore
 }
 
-func (s StoreContract) Test(t *testing.T) {
+func (s IngredientStoreContract) Test(t *testing.T) {
 	t.Run("it returns what is put in", func(t *testing.T) {
 		ctx := context.Background()
 		store := s.NewStore()

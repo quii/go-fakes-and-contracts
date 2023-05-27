@@ -6,16 +6,12 @@ import (
 	"github.com/quii/go-fakes-and-contracts/domain/recipe"
 )
 
-type Book interface {
-	GetRecipes() []recipe.Recipe
-}
-
 type Planner struct {
-	recipeBook      Book
-	ingredientStore Store
+	recipeBook      RecipeBook
+	ingredientStore IngredientStore
 }
 
-func New(recipes Book, ingredientStore Store) *Planner {
+func New(recipes RecipeBook, ingredientStore IngredientStore) *Planner {
 	return &Planner{recipeBook: recipes, ingredientStore: ingredientStore}
 }
 
@@ -25,8 +21,13 @@ func (p Planner) SuggestRecipes(ctx context.Context) ([]recipe.Recipe, error) {
 		return nil, err
 	}
 
+	recipes, err := p.recipeBook.GetRecipes(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	var suggestions []recipe.Recipe
-	for _, r := range p.recipeBook.GetRecipes() {
+	for _, r := range recipes {
 		if haveIngredients(availableIngredients, r) {
 			suggestions = append(suggestions, r)
 		}

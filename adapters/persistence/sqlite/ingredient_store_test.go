@@ -17,8 +17,8 @@ Try and compile, it fails, implement interface, try running test, it'll fail, no
 */
 
 func TestSQLiteIngredientStore(t *testing.T) {
-	planner.StoreContract{
-		NewStore: func() planner.CloseableStore {
+	planner.IngredientStoreContract{
+		NewStore: func() planner.CloseableIngredientStore {
 			return sqlite.NewIngredientStore()
 		},
 	}.Test(t)
