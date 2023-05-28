@@ -18,8 +18,8 @@ func TestRecipeMatcher(t *testing.T) {
 			NewRecipeBook: func() planner.CloseableRecipeBook {
 				return inmemory.NewRecipeStore()
 			},
-			NewIngredientStore: func() planner.CloseableIngredientStore {
-				return inmemory.NewIngredientStore()
+			NewIngredientStore: func() planner.CloseablePantry {
+				return inmemory.NewPantry()
 			},
 		}.Test(t)
 	})
@@ -31,8 +31,8 @@ func TestRecipeMatcher(t *testing.T) {
 				NewRecipeBook: func() planner.CloseableRecipeBook {
 					return inmemory.NewRecipeStore() //todo: replace with sqlite
 				},
-				NewIngredientStore: func() planner.CloseableIngredientStore {
-					return sqlite.NewIngredientStore()
+				NewIngredientStore: func() planner.CloseablePantry {
+					return sqlite.NewPantry()
 				},
 			}.Test(t)
 		}
@@ -40,7 +40,7 @@ func TestRecipeMatcher(t *testing.T) {
 }
 
 type RecipeMatcherTest struct {
-	NewIngredientStore func() planner.CloseableIngredientStore
+	NewIngredientStore func() planner.CloseablePantry
 	NewRecipeBook      func() planner.CloseableRecipeBook
 }
 
@@ -111,7 +111,7 @@ func (r RecipeMatcherTest) Test(t *testing.T) {
 
 func assertAvailableRecipes(
 	t *testing.T,
-	ingredientStore planner.IngredientStore,
+	ingredientStore planner.Pantry,
 	recipeStore planner.RecipeBook,
 	expectedRecipes []recipe.Recipe,
 ) {

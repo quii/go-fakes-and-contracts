@@ -8,3 +8,12 @@ import (
 
 // Ingredient is the predicate function for ingredient builders.
 type Ingredient func(*sql.Selector)
+
+// Pantry is the predicate function for pantry builders.
+type Pantry func(*sql.Selector)
+
+// Recipe is the predicate function for recipe builders.
+type Recipe func(*sql.Selector)
+
+// RecipeIngredient is the predicate function for recipeingredient builders.
+type RecipeIngredient func(*sql.Selector)

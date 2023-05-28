@@ -9,6 +9,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/quii/go-fakes-and-contracts/adapters/persistence/sqlite/ent/ingredient"
+	"github.com/quii/go-fakes-and-contracts/adapters/persistence/sqlite/ent/pantry"
 )
 
 // Ingredient is the model entity for the Ingredient schema.
@@ -18,9 +19,36 @@ type Ingredient struct {
 	ID int `json:"id,omitempty"`
 	// Name holds the value of the "name" field.
 	Name string `json:"name,omitempty"`
-	// Quantity holds the value of the "quantity" field.
-	Quantity     uint `json:"quantity,omitempty"`
-	selectValues sql.SelectValues
+	// Vegan holds the value of the "vegan" field.
+	Vegan bool `json:"vegan,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the IngredientQuery when eager-loading is set.
+	Edges                        IngredientEdges `json:"edges"`
+	pantry_ingredient            *int
+	recipe_ingredient_ingredient *int
+	selectValues                 sql.SelectValues
+}
+
+// IngredientEdges holds the relations/edges for other nodes in the graph.
+type IngredientEdges struct {
+	// Pantry holds the value of the pantry edge.
+	Pantry *Pantry `json:"pantry,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [1]bool
+}
+
+// PantryOrErr returns the Pantry value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e IngredientEdges) PantryOrErr() (*Pantry, error) {
+	if e.loadedTypes[0] {
+		if e.Pantry == nil {
+			// Edge was loaded but was not found.
+			return nil, &NotFoundError{label: pantry.Label}
+		}
+		return e.Pantry, nil
+	}
+	return nil, &NotLoadedError{edge: "pantry"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -28,10 +56,16 @@ func (*Ingredient) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case ingredient.FieldID, ingredient.FieldQuantity:
+		case ingredient.FieldVegan:
+			values[i] = new(sql.NullBool)
+		case ingredient.FieldID:
 			values[i] = new(sql.NullInt64)
 		case ingredient.FieldName:
 			values[i] = new(sql.NullString)
+		case ingredient.ForeignKeys[0]: // pantry_ingredient
+			values[i] = new(sql.NullInt64)
+		case ingredient.ForeignKeys[1]: // recipe_ingredient_ingredient
+			values[i] = new(sql.NullInt64)
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -59,11 +93,25 @@ func (i *Ingredient) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				i.Name = value.String
 			}
-		case ingredient.FieldQuantity:
-			if value, ok := values[j].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for field quantity", values[j])
+		case ingredient.FieldVegan:
+			if value, ok := values[j].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field vegan", values[j])
 			} else if value.Valid {
-				i.Quantity = uint(value.Int64)
+				i.Vegan = value.Bool
+			}
+		case ingredient.ForeignKeys[0]:
+			if value, ok := values[j].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for edge-field pantry_ingredient", value)
+			} else if value.Valid {
+				i.pantry_ingredient = new(int)
+				*i.pantry_ingredient = int(value.Int64)
+			}
+		case ingredient.ForeignKeys[1]:
+			if value, ok := values[j].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for edge-field recipe_ingredient_ingredient", value)
+			} else if value.Valid {
+				i.recipe_ingredient_ingredient = new(int)
+				*i.recipe_ingredient_ingredient = int(value.Int64)
 			}
 		default:
 			i.selectValues.Set(columns[j], values[j])
@@ -76,6 +124,11 @@ func (i *Ingredient) assignValues(columns []string, values []any) error {
 // This includes values selected through modifiers, order, etc.
 func (i *Ingredient) Value(name string) (ent.Value, error) {
 	return i.selectValues.Get(name)
+}
+
+// QueryPantry queries the "pantry" edge of the Ingredient entity.
+func (i *Ingredient) QueryPantry() *PantryQuery {
+	return NewIngredientClient(i.config).QueryPantry(i)
 }
 
 // Update returns a builder for updating this Ingredient.
@@ -104,8 +157,8 @@ func (i *Ingredient) String() string {
 	builder.WriteString("name=")
 	builder.WriteString(i.Name)
 	builder.WriteString(", ")
-	builder.WriteString("quantity=")
-	builder.WriteString(fmt.Sprintf("%v", i.Quantity))
+	builder.WriteString("vegan=")
+	builder.WriteString(fmt.Sprintf("%v", i.Vegan))
 	builder.WriteByte(')')
 	return builder.String()
 }

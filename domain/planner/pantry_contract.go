@@ -7,24 +7,24 @@ import (
 	"testing"
 )
 
-type IngredientStore interface {
+type Pantry interface {
 	GetIngredients(ctx context.Context) ([]ingredients.Ingredient, error)
 	Store(context.Context, ...ingredients.Ingredient) error
 }
 
-type CloseableIngredientStore interface {
-	IngredientStore
+type CloseablePantry interface {
+	Pantry
 	Close()
 }
 
-type IngredientStoreContract struct {
-	NewStore func() CloseableIngredientStore
+type PantryContract struct {
+	NewPantry func() CloseablePantry
 }
 
-func (s IngredientStoreContract) Test(t *testing.T) {
+func (s PantryContract) Test(t *testing.T) {
 	t.Run("it returns what is put in", func(t *testing.T) {
 		ctx := context.Background()
-		store := s.NewStore()
+		store := s.NewPantry()
 		t.Cleanup(store.Close)
 
 		want := []ingredients.Ingredient{
@@ -43,23 +43,23 @@ func (s IngredientStoreContract) Test(t *testing.T) {
 
 	t.Run("it adds to the quantity of ingredients", func(t *testing.T) {
 		ctx := context.Background()
-		store := s.NewStore()
-		t.Cleanup(store.Close)
+		pantry := s.NewPantry()
+		t.Cleanup(pantry.Close)
 
-		assert.NoError(t, store.Store(ctx, ingredients.Ingredient{
+		assert.NoError(t, pantry.Store(ctx, ingredients.Ingredient{
 			Name:     "Orange",
 			Quantity: 1,
 		}))
-		assert.NoError(t, store.Store(ctx, ingredients.Ingredient{
+		assert.NoError(t, pantry.Store(ctx, ingredients.Ingredient{
 			Name:     "Orange",
 			Quantity: 1,
 		}))
-		assert.NoError(t, store.Store(ctx, ingredients.Ingredient{
+		assert.NoError(t, pantry.Store(ctx, ingredients.Ingredient{
 			Name:     "Orange",
 			Quantity: 1,
 		}))
 
-		got, err := store.GetIngredients(ctx)
+		got, err := pantry.GetIngredients(ctx)
 		assert.NoError(t, err)
 		assert.Equal(t, len(got), 1)
 		assert.Equal(t, got[0].Quantity, 3)

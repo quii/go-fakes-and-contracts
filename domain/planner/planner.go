@@ -7,16 +7,16 @@ import (
 )
 
 type Planner struct {
-	recipeBook      RecipeBook
-	ingredientStore IngredientStore
+	recipeBook RecipeBook
+	pantry     Pantry
 }
 
-func New(recipes RecipeBook, ingredientStore IngredientStore) *Planner {
-	return &Planner{recipeBook: recipes, ingredientStore: ingredientStore}
+func New(recipes RecipeBook, ingredientStore Pantry) *Planner {
+	return &Planner{recipeBook: recipes, pantry: ingredientStore}
 }
 
 func (p Planner) SuggestRecipes(ctx context.Context) ([]recipe.Recipe, error) {
-	availableIngredients, err := p.ingredientStore.GetIngredients(ctx)
+	availableIngredients, err := p.pantry.GetIngredients(ctx)
 	if err != nil {
 		return nil, err
 	}

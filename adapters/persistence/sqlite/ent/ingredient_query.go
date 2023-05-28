@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/quii/go-fakes-and-contracts/adapters/persistence/sqlite/ent/ingredient"
+	"github.com/quii/go-fakes-and-contracts/adapters/persistence/sqlite/ent/pantry"
 	"github.com/quii/go-fakes-and-contracts/adapters/persistence/sqlite/ent/predicate"
 )
 
@@ -21,6 +22,8 @@ type IngredientQuery struct {
 	order      []ingredient.OrderOption
 	inters     []Interceptor
 	predicates []predicate.Ingredient
+	withPantry *PantryQuery
+	withFKs    bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -55,6 +58,28 @@ func (iq *IngredientQuery) Unique(unique bool) *IngredientQuery {
 func (iq *IngredientQuery) Order(o ...ingredient.OrderOption) *IngredientQuery {
 	iq.order = append(iq.order, o...)
 	return iq
+}
+
+// QueryPantry chains the current query on the "pantry" edge.
+func (iq *IngredientQuery) QueryPantry() *PantryQuery {
+	query := (&PantryClient{config: iq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := iq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := iq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ingredient.Table, ingredient.FieldID, selector),
+			sqlgraph.To(pantry.Table, pantry.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, ingredient.PantryTable, ingredient.PantryColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(iq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
 }
 
 // First returns the first Ingredient entity from the query.
@@ -249,10 +274,22 @@ func (iq *IngredientQuery) Clone() *IngredientQuery {
 		order:      append([]ingredient.OrderOption{}, iq.order...),
 		inters:     append([]Interceptor{}, iq.inters...),
 		predicates: append([]predicate.Ingredient{}, iq.predicates...),
+		withPantry: iq.withPantry.Clone(),
 		// clone intermediate query.
 		sql:  iq.sql.Clone(),
 		path: iq.path,
 	}
+}
+
+// WithPantry tells the query-builder to eager-load the nodes that are connected to
+// the "pantry" edge. The optional arguments are used to configure the query builder of the edge.
+func (iq *IngredientQuery) WithPantry(opts ...func(*PantryQuery)) *IngredientQuery {
+	query := (&PantryClient{config: iq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	iq.withPantry = query
+	return iq
 }
 
 // GroupBy is used to group vertices by one or more fields/columns.
@@ -331,15 +368,26 @@ func (iq *IngredientQuery) prepareQuery(ctx context.Context) error {
 
 func (iq *IngredientQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Ingredient, error) {
 	var (
-		nodes = []*Ingredient{}
-		_spec = iq.querySpec()
+		nodes       = []*Ingredient{}
+		withFKs     = iq.withFKs
+		_spec       = iq.querySpec()
+		loadedTypes = [1]bool{
+			iq.withPantry != nil,
+		}
 	)
+	if iq.withPantry != nil {
+		withFKs = true
+	}
+	if withFKs {
+		_spec.Node.Columns = append(_spec.Node.Columns, ingredient.ForeignKeys...)
+	}
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*Ingredient).scanValues(nil, columns)
 	}
 	_spec.Assign = func(columns []string, values []any) error {
 		node := &Ingredient{config: iq.config}
 		nodes = append(nodes, node)
+		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
 	for i := range hooks {
@@ -351,7 +399,46 @@ func (iq *IngredientQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*I
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
+	if query := iq.withPantry; query != nil {
+		if err := iq.loadPantry(ctx, query, nodes, nil,
+			func(n *Ingredient, e *Pantry) { n.Edges.Pantry = e }); err != nil {
+			return nil, err
+		}
+	}
 	return nodes, nil
+}
+
+func (iq *IngredientQuery) loadPantry(ctx context.Context, query *PantryQuery, nodes []*Ingredient, init func(*Ingredient), assign func(*Ingredient, *Pantry)) error {
+	ids := make([]int, 0, len(nodes))
+	nodeids := make(map[int][]*Ingredient)
+	for i := range nodes {
+		if nodes[i].pantry_ingredient == nil {
+			continue
+		}
+		fk := *nodes[i].pantry_ingredient
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(pantry.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "pantry_ingredient" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
 }
 
 func (iq *IngredientQuery) sqlCount(ctx context.Context) (int, error) {

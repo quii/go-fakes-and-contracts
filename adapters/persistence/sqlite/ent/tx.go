@@ -14,6 +14,12 @@ type Tx struct {
 	config
 	// Ingredient is the client for interacting with the Ingredient builders.
 	Ingredient *IngredientClient
+	// Pantry is the client for interacting with the Pantry builders.
+	Pantry *PantryClient
+	// Recipe is the client for interacting with the Recipe builders.
+	Recipe *RecipeClient
+	// RecipeIngredient is the client for interacting with the RecipeIngredient builders.
+	RecipeIngredient *RecipeIngredientClient
 
 	// lazily loaded.
 	client     *Client
@@ -146,6 +152,9 @@ func (tx *Tx) Client() *Client {
 
 func (tx *Tx) init() {
 	tx.Ingredient = NewIngredientClient(tx.config)
+	tx.Pantry = NewPantryClient(tx.config)
+	tx.Recipe = NewRecipeClient(tx.config)
+	tx.RecipeIngredient = NewRecipeIngredientClient(tx.config)
 }
 
 // txDriver wraps the given dialect.Tx with a nop dialect.Driver implementation.

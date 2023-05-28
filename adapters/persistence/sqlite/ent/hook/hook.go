@@ -21,6 +21,42 @@ func (f IngredientFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, 
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.IngredientMutation", m)
 }
 
+// The PantryFunc type is an adapter to allow the use of ordinary
+// function as Pantry mutator.
+type PantryFunc func(context.Context, *ent.PantryMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f PantryFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.PantryMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PantryMutation", m)
+}
+
+// The RecipeFunc type is an adapter to allow the use of ordinary
+// function as Recipe mutator.
+type RecipeFunc func(context.Context, *ent.RecipeMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f RecipeFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.RecipeMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.RecipeMutation", m)
+}
+
+// The RecipeIngredientFunc type is an adapter to allow the use of ordinary
+// function as RecipeIngredient mutator.
+type RecipeIngredientFunc func(context.Context, *ent.RecipeIngredientMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f RecipeIngredientFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.RecipeIngredientMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.RecipeIngredientMutation", m)
+}
+
 // Condition is a hook condition function.
 type Condition func(context.Context, ent.Mutation) bool
 

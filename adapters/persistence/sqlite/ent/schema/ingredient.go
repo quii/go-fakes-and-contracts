@@ -2,6 +2,7 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 )
 
@@ -14,11 +15,13 @@ type Ingredient struct {
 func (Ingredient) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("name").Unique(),
-		field.Uint("quantity"),
+		field.Bool("vegan").Default(false),
 	}
 }
 
 // Edges of the Ingredient.
 func (Ingredient) Edges() []ent.Edge {
-	return nil
+	return []ent.Edge{
+		edge.From("pantry", Pantry.Type).Ref("ingredient").Unique(),
+	}
 }

@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/quii/go-fakes-and-contracts/adapters/persistence/sqlite/ent/ingredient"
+	"github.com/quii/go-fakes-and-contracts/adapters/persistence/sqlite/ent/pantry"
 	"github.com/quii/go-fakes-and-contracts/adapters/persistence/sqlite/ent/predicate"
 )
 
@@ -33,22 +34,48 @@ func (iu *IngredientUpdate) SetName(s string) *IngredientUpdate {
 	return iu
 }
 
-// SetQuantity sets the "quantity" field.
-func (iu *IngredientUpdate) SetQuantity(u uint) *IngredientUpdate {
-	iu.mutation.ResetQuantity()
-	iu.mutation.SetQuantity(u)
+// SetVegan sets the "vegan" field.
+func (iu *IngredientUpdate) SetVegan(b bool) *IngredientUpdate {
+	iu.mutation.SetVegan(b)
 	return iu
 }
 
-// AddQuantity adds u to the "quantity" field.
-func (iu *IngredientUpdate) AddQuantity(u int) *IngredientUpdate {
-	iu.mutation.AddQuantity(u)
+// SetNillableVegan sets the "vegan" field if the given value is not nil.
+func (iu *IngredientUpdate) SetNillableVegan(b *bool) *IngredientUpdate {
+	if b != nil {
+		iu.SetVegan(*b)
+	}
 	return iu
+}
+
+// SetPantryID sets the "pantry" edge to the Pantry entity by ID.
+func (iu *IngredientUpdate) SetPantryID(id int) *IngredientUpdate {
+	iu.mutation.SetPantryID(id)
+	return iu
+}
+
+// SetNillablePantryID sets the "pantry" edge to the Pantry entity by ID if the given value is not nil.
+func (iu *IngredientUpdate) SetNillablePantryID(id *int) *IngredientUpdate {
+	if id != nil {
+		iu = iu.SetPantryID(*id)
+	}
+	return iu
+}
+
+// SetPantry sets the "pantry" edge to the Pantry entity.
+func (iu *IngredientUpdate) SetPantry(p *Pantry) *IngredientUpdate {
+	return iu.SetPantryID(p.ID)
 }
 
 // Mutation returns the IngredientMutation object of the builder.
 func (iu *IngredientUpdate) Mutation() *IngredientMutation {
 	return iu.mutation
+}
+
+// ClearPantry clears the "pantry" edge to the Pantry entity.
+func (iu *IngredientUpdate) ClearPantry() *IngredientUpdate {
+	iu.mutation.ClearPantry()
+	return iu
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -90,11 +117,37 @@ func (iu *IngredientUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if value, ok := iu.mutation.Name(); ok {
 		_spec.SetField(ingredient.FieldName, field.TypeString, value)
 	}
-	if value, ok := iu.mutation.Quantity(); ok {
-		_spec.SetField(ingredient.FieldQuantity, field.TypeUint, value)
+	if value, ok := iu.mutation.Vegan(); ok {
+		_spec.SetField(ingredient.FieldVegan, field.TypeBool, value)
 	}
-	if value, ok := iu.mutation.AddedQuantity(); ok {
-		_spec.AddField(ingredient.FieldQuantity, field.TypeUint, value)
+	if iu.mutation.PantryCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   ingredient.PantryTable,
+			Columns: []string{ingredient.PantryColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(pantry.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := iu.mutation.PantryIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   ingredient.PantryTable,
+			Columns: []string{ingredient.PantryColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(pantry.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if n, err = sqlgraph.UpdateNodes(ctx, iu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -122,22 +175,48 @@ func (iuo *IngredientUpdateOne) SetName(s string) *IngredientUpdateOne {
 	return iuo
 }
 
-// SetQuantity sets the "quantity" field.
-func (iuo *IngredientUpdateOne) SetQuantity(u uint) *IngredientUpdateOne {
-	iuo.mutation.ResetQuantity()
-	iuo.mutation.SetQuantity(u)
+// SetVegan sets the "vegan" field.
+func (iuo *IngredientUpdateOne) SetVegan(b bool) *IngredientUpdateOne {
+	iuo.mutation.SetVegan(b)
 	return iuo
 }
 
-// AddQuantity adds u to the "quantity" field.
-func (iuo *IngredientUpdateOne) AddQuantity(u int) *IngredientUpdateOne {
-	iuo.mutation.AddQuantity(u)
+// SetNillableVegan sets the "vegan" field if the given value is not nil.
+func (iuo *IngredientUpdateOne) SetNillableVegan(b *bool) *IngredientUpdateOne {
+	if b != nil {
+		iuo.SetVegan(*b)
+	}
 	return iuo
+}
+
+// SetPantryID sets the "pantry" edge to the Pantry entity by ID.
+func (iuo *IngredientUpdateOne) SetPantryID(id int) *IngredientUpdateOne {
+	iuo.mutation.SetPantryID(id)
+	return iuo
+}
+
+// SetNillablePantryID sets the "pantry" edge to the Pantry entity by ID if the given value is not nil.
+func (iuo *IngredientUpdateOne) SetNillablePantryID(id *int) *IngredientUpdateOne {
+	if id != nil {
+		iuo = iuo.SetPantryID(*id)
+	}
+	return iuo
+}
+
+// SetPantry sets the "pantry" edge to the Pantry entity.
+func (iuo *IngredientUpdateOne) SetPantry(p *Pantry) *IngredientUpdateOne {
+	return iuo.SetPantryID(p.ID)
 }
 
 // Mutation returns the IngredientMutation object of the builder.
 func (iuo *IngredientUpdateOne) Mutation() *IngredientMutation {
 	return iuo.mutation
+}
+
+// ClearPantry clears the "pantry" edge to the Pantry entity.
+func (iuo *IngredientUpdateOne) ClearPantry() *IngredientUpdateOne {
+	iuo.mutation.ClearPantry()
+	return iuo
 }
 
 // Where appends a list predicates to the IngredientUpdate builder.
@@ -209,11 +288,37 @@ func (iuo *IngredientUpdateOne) sqlSave(ctx context.Context) (_node *Ingredient,
 	if value, ok := iuo.mutation.Name(); ok {
 		_spec.SetField(ingredient.FieldName, field.TypeString, value)
 	}
-	if value, ok := iuo.mutation.Quantity(); ok {
-		_spec.SetField(ingredient.FieldQuantity, field.TypeUint, value)
+	if value, ok := iuo.mutation.Vegan(); ok {
+		_spec.SetField(ingredient.FieldVegan, field.TypeBool, value)
 	}
-	if value, ok := iuo.mutation.AddedQuantity(); ok {
-		_spec.AddField(ingredient.FieldQuantity, field.TypeUint, value)
+	if iuo.mutation.PantryCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   ingredient.PantryTable,
+			Columns: []string{ingredient.PantryColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(pantry.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := iuo.mutation.PantryIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   ingredient.PantryTable,
+			Columns: []string{ingredient.PantryColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(pantry.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &Ingredient{config: iuo.config}
 	_spec.Assign = _node.assignValues

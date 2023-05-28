@@ -12,19 +12,85 @@ var (
 	IngredientsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
 		{Name: "name", Type: field.TypeString, Unique: true},
-		{Name: "quantity", Type: field.TypeUint},
+		{Name: "vegan", Type: field.TypeBool, Default: false},
+		{Name: "pantry_ingredient", Type: field.TypeInt, Unique: true, Nullable: true},
+		{Name: "recipe_ingredient_ingredient", Type: field.TypeInt, Nullable: true},
 	}
 	// IngredientsTable holds the schema information for the "ingredients" table.
 	IngredientsTable = &schema.Table{
 		Name:       "ingredients",
 		Columns:    IngredientsColumns,
 		PrimaryKey: []*schema.Column{IngredientsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "ingredients_pantries_ingredient",
+				Columns:    []*schema.Column{IngredientsColumns[3]},
+				RefColumns: []*schema.Column{PantriesColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "ingredients_recipe_ingredients_ingredient",
+				Columns:    []*schema.Column{IngredientsColumns[4]},
+				RefColumns: []*schema.Column{RecipeIngredientsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+	}
+	// PantriesColumns holds the columns for the "pantries" table.
+	PantriesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "quantity", Type: field.TypeInt},
+	}
+	// PantriesTable holds the schema information for the "pantries" table.
+	PantriesTable = &schema.Table{
+		Name:       "pantries",
+		Columns:    PantriesColumns,
+		PrimaryKey: []*schema.Column{PantriesColumns[0]},
+	}
+	// RecipesColumns holds the columns for the "recipes" table.
+	RecipesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "name", Type: field.TypeString},
+		{Name: "description", Type: field.TypeString},
+		{Name: "meal_type", Type: field.TypeInt},
+	}
+	// RecipesTable holds the schema information for the "recipes" table.
+	RecipesTable = &schema.Table{
+		Name:       "recipes",
+		Columns:    RecipesColumns,
+		PrimaryKey: []*schema.Column{RecipesColumns[0]},
+	}
+	// RecipeIngredientsColumns holds the columns for the "recipe_ingredients" table.
+	RecipeIngredientsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "quantity", Type: field.TypeInt},
+		{Name: "recipe_recipeingredient", Type: field.TypeInt, Nullable: true},
+	}
+	// RecipeIngredientsTable holds the schema information for the "recipe_ingredients" table.
+	RecipeIngredientsTable = &schema.Table{
+		Name:       "recipe_ingredients",
+		Columns:    RecipeIngredientsColumns,
+		PrimaryKey: []*schema.Column{RecipeIngredientsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "recipe_ingredients_recipes_recipeingredient",
+				Columns:    []*schema.Column{RecipeIngredientsColumns[2]},
+				RefColumns: []*schema.Column{RecipesColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		IngredientsTable,
+		PantriesTable,
+		RecipesTable,
+		RecipeIngredientsTable,
 	}
 )
 
 func init() {
+	IngredientsTable.ForeignKeys[0].RefTable = PantriesTable
+	IngredientsTable.ForeignKeys[1].RefTable = RecipeIngredientsTable
+	RecipeIngredientsTable.ForeignKeys[0].RefTable = RecipesTable
 }

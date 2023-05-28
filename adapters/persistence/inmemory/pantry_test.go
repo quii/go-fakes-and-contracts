@@ -7,9 +7,9 @@ import (
 )
 
 func TestInMemoryIngredientStore(t *testing.T) {
-	planner.IngredientStoreContract{
-		NewStore: func() planner.CloseableIngredientStore {
-			return inmemory.NewIngredientStore()
+	planner.PantryContract{
+		NewPantry: func() planner.CloseablePantry {
+			return inmemory.NewPantry()
 		},
 	}.Test(t)
 }

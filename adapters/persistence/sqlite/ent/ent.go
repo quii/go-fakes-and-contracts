@@ -13,6 +13,9 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/quii/go-fakes-and-contracts/adapters/persistence/sqlite/ent/ingredient"
+	"github.com/quii/go-fakes-and-contracts/adapters/persistence/sqlite/ent/pantry"
+	"github.com/quii/go-fakes-and-contracts/adapters/persistence/sqlite/ent/recipe"
+	"github.com/quii/go-fakes-and-contracts/adapters/persistence/sqlite/ent/recipeingredient"
 )
 
 // ent aliases to avoid import conflicts in user's code.
@@ -73,7 +76,10 @@ var (
 func checkColumn(table, column string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
-			ingredient.Table: ingredient.ValidColumn,
+			ingredient.Table:       ingredient.ValidColumn,
+			pantry.Table:           pantry.ValidColumn,
+			recipe.Table:           recipe.ValidColumn,
+			recipeingredient.Table: recipeingredient.ValidColumn,
 		})
 	})
 	return columnCheck(table, column)

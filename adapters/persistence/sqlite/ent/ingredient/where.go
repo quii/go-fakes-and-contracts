@@ -4,6 +4,7 @@ package ingredient
 
 import (
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/quii/go-fakes-and-contracts/adapters/persistence/sqlite/ent/predicate"
 )
 
@@ -57,9 +58,9 @@ func Name(v string) predicate.Ingredient {
 	return predicate.Ingredient(sql.FieldEQ(FieldName, v))
 }
 
-// Quantity applies equality check predicate on the "quantity" field. It's identical to QuantityEQ.
-func Quantity(v uint) predicate.Ingredient {
-	return predicate.Ingredient(sql.FieldEQ(FieldQuantity, v))
+// Vegan applies equality check predicate on the "vegan" field. It's identical to VeganEQ.
+func Vegan(v bool) predicate.Ingredient {
+	return predicate.Ingredient(sql.FieldEQ(FieldVegan, v))
 }
 
 // NameEQ applies the EQ predicate on the "name" field.
@@ -127,44 +128,37 @@ func NameContainsFold(v string) predicate.Ingredient {
 	return predicate.Ingredient(sql.FieldContainsFold(FieldName, v))
 }
 
-// QuantityEQ applies the EQ predicate on the "quantity" field.
-func QuantityEQ(v uint) predicate.Ingredient {
-	return predicate.Ingredient(sql.FieldEQ(FieldQuantity, v))
+// VeganEQ applies the EQ predicate on the "vegan" field.
+func VeganEQ(v bool) predicate.Ingredient {
+	return predicate.Ingredient(sql.FieldEQ(FieldVegan, v))
 }
 
-// QuantityNEQ applies the NEQ predicate on the "quantity" field.
-func QuantityNEQ(v uint) predicate.Ingredient {
-	return predicate.Ingredient(sql.FieldNEQ(FieldQuantity, v))
+// VeganNEQ applies the NEQ predicate on the "vegan" field.
+func VeganNEQ(v bool) predicate.Ingredient {
+	return predicate.Ingredient(sql.FieldNEQ(FieldVegan, v))
 }
 
-// QuantityIn applies the In predicate on the "quantity" field.
-func QuantityIn(vs ...uint) predicate.Ingredient {
-	return predicate.Ingredient(sql.FieldIn(FieldQuantity, vs...))
+// HasPantry applies the HasEdge predicate on the "pantry" edge.
+func HasPantry() predicate.Ingredient {
+	return predicate.Ingredient(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, PantryTable, PantryColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
 }
 
-// QuantityNotIn applies the NotIn predicate on the "quantity" field.
-func QuantityNotIn(vs ...uint) predicate.Ingredient {
-	return predicate.Ingredient(sql.FieldNotIn(FieldQuantity, vs...))
-}
-
-// QuantityGT applies the GT predicate on the "quantity" field.
-func QuantityGT(v uint) predicate.Ingredient {
-	return predicate.Ingredient(sql.FieldGT(FieldQuantity, v))
-}
-
-// QuantityGTE applies the GTE predicate on the "quantity" field.
-func QuantityGTE(v uint) predicate.Ingredient {
-	return predicate.Ingredient(sql.FieldGTE(FieldQuantity, v))
-}
-
-// QuantityLT applies the LT predicate on the "quantity" field.
-func QuantityLT(v uint) predicate.Ingredient {
-	return predicate.Ingredient(sql.FieldLT(FieldQuantity, v))
-}
-
-// QuantityLTE applies the LTE predicate on the "quantity" field.
-func QuantityLTE(v uint) predicate.Ingredient {
-	return predicate.Ingredient(sql.FieldLTE(FieldQuantity, v))
+// HasPantryWith applies the HasEdge predicate on the "pantry" edge with a given conditions (other predicates).
+func HasPantryWith(preds ...predicate.Pantry) predicate.Ingredient {
+	return predicate.Ingredient(func(s *sql.Selector) {
+		step := newPantryStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
 }
 
 // And groups predicates with the AND operator between them.

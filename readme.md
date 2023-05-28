@@ -1,0 +1,1 @@
+go run entgo.io/ent/cmd/ent describe ./ent/schema

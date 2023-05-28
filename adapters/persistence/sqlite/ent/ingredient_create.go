@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/quii/go-fakes-and-contracts/adapters/persistence/sqlite/ent/ingredient"
+	"github.com/quii/go-fakes-and-contracts/adapters/persistence/sqlite/ent/pantry"
 )
 
 // IngredientCreate is the builder for creating a Ingredient entity.
@@ -27,10 +28,37 @@ func (ic *IngredientCreate) SetName(s string) *IngredientCreate {
 	return ic
 }
 
-// SetQuantity sets the "quantity" field.
-func (ic *IngredientCreate) SetQuantity(u uint) *IngredientCreate {
-	ic.mutation.SetQuantity(u)
+// SetVegan sets the "vegan" field.
+func (ic *IngredientCreate) SetVegan(b bool) *IngredientCreate {
+	ic.mutation.SetVegan(b)
 	return ic
+}
+
+// SetNillableVegan sets the "vegan" field if the given value is not nil.
+func (ic *IngredientCreate) SetNillableVegan(b *bool) *IngredientCreate {
+	if b != nil {
+		ic.SetVegan(*b)
+	}
+	return ic
+}
+
+// SetPantryID sets the "pantry" edge to the Pantry entity by ID.
+func (ic *IngredientCreate) SetPantryID(id int) *IngredientCreate {
+	ic.mutation.SetPantryID(id)
+	return ic
+}
+
+// SetNillablePantryID sets the "pantry" edge to the Pantry entity by ID if the given value is not nil.
+func (ic *IngredientCreate) SetNillablePantryID(id *int) *IngredientCreate {
+	if id != nil {
+		ic = ic.SetPantryID(*id)
+	}
+	return ic
+}
+
+// SetPantry sets the "pantry" edge to the Pantry entity.
+func (ic *IngredientCreate) SetPantry(p *Pantry) *IngredientCreate {
+	return ic.SetPantryID(p.ID)
 }
 
 // Mutation returns the IngredientMutation object of the builder.
@@ -40,6 +68,7 @@ func (ic *IngredientCreate) Mutation() *IngredientMutation {
 
 // Save creates the Ingredient in the database.
 func (ic *IngredientCreate) Save(ctx context.Context) (*Ingredient, error) {
+	ic.defaults()
 	return withHooks(ctx, ic.sqlSave, ic.mutation, ic.hooks)
 }
 
@@ -65,13 +94,21 @@ func (ic *IngredientCreate) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (ic *IngredientCreate) defaults() {
+	if _, ok := ic.mutation.Vegan(); !ok {
+		v := ingredient.DefaultVegan
+		ic.mutation.SetVegan(v)
+	}
+}
+
 // check runs all checks and user-defined validators on the builder.
 func (ic *IngredientCreate) check() error {
 	if _, ok := ic.mutation.Name(); !ok {
 		return &ValidationError{Name: "name", err: errors.New(`ent: missing required field "Ingredient.name"`)}
 	}
-	if _, ok := ic.mutation.Quantity(); !ok {
-		return &ValidationError{Name: "quantity", err: errors.New(`ent: missing required field "Ingredient.quantity"`)}
+	if _, ok := ic.mutation.Vegan(); !ok {
+		return &ValidationError{Name: "vegan", err: errors.New(`ent: missing required field "Ingredient.vegan"`)}
 	}
 	return nil
 }
@@ -104,9 +141,26 @@ func (ic *IngredientCreate) createSpec() (*Ingredient, *sqlgraph.CreateSpec) {
 		_spec.SetField(ingredient.FieldName, field.TypeString, value)
 		_node.Name = value
 	}
-	if value, ok := ic.mutation.Quantity(); ok {
-		_spec.SetField(ingredient.FieldQuantity, field.TypeUint, value)
-		_node.Quantity = value
+	if value, ok := ic.mutation.Vegan(); ok {
+		_spec.SetField(ingredient.FieldVegan, field.TypeBool, value)
+		_node.Vegan = value
+	}
+	if nodes := ic.mutation.PantryIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   ingredient.PantryTable,
+			Columns: []string{ingredient.PantryColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(pantry.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.pantry_ingredient = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
 }
@@ -172,21 +226,15 @@ func (u *IngredientUpsert) UpdateName() *IngredientUpsert {
 	return u
 }
 
-// SetQuantity sets the "quantity" field.
-func (u *IngredientUpsert) SetQuantity(v uint) *IngredientUpsert {
-	u.Set(ingredient.FieldQuantity, v)
+// SetVegan sets the "vegan" field.
+func (u *IngredientUpsert) SetVegan(v bool) *IngredientUpsert {
+	u.Set(ingredient.FieldVegan, v)
 	return u
 }
 
-// UpdateQuantity sets the "quantity" field to the value that was provided on create.
-func (u *IngredientUpsert) UpdateQuantity() *IngredientUpsert {
-	u.SetExcluded(ingredient.FieldQuantity)
-	return u
-}
-
-// AddQuantity adds v to the "quantity" field.
-func (u *IngredientUpsert) AddQuantity(v uint) *IngredientUpsert {
-	u.Add(ingredient.FieldQuantity, v)
+// UpdateVegan sets the "vegan" field to the value that was provided on create.
+func (u *IngredientUpsert) UpdateVegan() *IngredientUpsert {
+	u.SetExcluded(ingredient.FieldVegan)
 	return u
 }
 
@@ -244,24 +292,17 @@ func (u *IngredientUpsertOne) UpdateName() *IngredientUpsertOne {
 	})
 }
 
-// SetQuantity sets the "quantity" field.
-func (u *IngredientUpsertOne) SetQuantity(v uint) *IngredientUpsertOne {
+// SetVegan sets the "vegan" field.
+func (u *IngredientUpsertOne) SetVegan(v bool) *IngredientUpsertOne {
 	return u.Update(func(s *IngredientUpsert) {
-		s.SetQuantity(v)
+		s.SetVegan(v)
 	})
 }
 
-// AddQuantity adds v to the "quantity" field.
-func (u *IngredientUpsertOne) AddQuantity(v uint) *IngredientUpsertOne {
+// UpdateVegan sets the "vegan" field to the value that was provided on create.
+func (u *IngredientUpsertOne) UpdateVegan() *IngredientUpsertOne {
 	return u.Update(func(s *IngredientUpsert) {
-		s.AddQuantity(v)
-	})
-}
-
-// UpdateQuantity sets the "quantity" field to the value that was provided on create.
-func (u *IngredientUpsertOne) UpdateQuantity() *IngredientUpsertOne {
-	return u.Update(func(s *IngredientUpsert) {
-		s.UpdateQuantity()
+		s.UpdateVegan()
 	})
 }
 
@@ -313,6 +354,7 @@ func (icb *IngredientCreateBulk) Save(ctx context.Context) ([]*Ingredient, error
 	for i := range icb.builders {
 		func(i int, root context.Context) {
 			builder := icb.builders[i]
+			builder.defaults()
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 				mutation, ok := m.(*IngredientMutation)
 				if !ok {
@@ -478,24 +520,17 @@ func (u *IngredientUpsertBulk) UpdateName() *IngredientUpsertBulk {
 	})
 }
 
-// SetQuantity sets the "quantity" field.
-func (u *IngredientUpsertBulk) SetQuantity(v uint) *IngredientUpsertBulk {
+// SetVegan sets the "vegan" field.
+func (u *IngredientUpsertBulk) SetVegan(v bool) *IngredientUpsertBulk {
 	return u.Update(func(s *IngredientUpsert) {
-		s.SetQuantity(v)
+		s.SetVegan(v)
 	})
 }
 
-// AddQuantity adds v to the "quantity" field.
-func (u *IngredientUpsertBulk) AddQuantity(v uint) *IngredientUpsertBulk {
+// UpdateVegan sets the "vegan" field to the value that was provided on create.
+func (u *IngredientUpsertBulk) UpdateVegan() *IngredientUpsertBulk {
 	return u.Update(func(s *IngredientUpsert) {
-		s.AddQuantity(v)
-	})
-}
-
-// UpdateQuantity sets the "quantity" field to the value that was provided on create.
-func (u *IngredientUpsertBulk) UpdateQuantity() *IngredientUpsertBulk {
-	return u.Update(func(s *IngredientUpsert) {
-		s.UpdateQuantity()
+		s.UpdateVegan()
 	})
 }
 
