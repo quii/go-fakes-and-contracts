@@ -14,7 +14,7 @@ var (
 		{Name: "name", Type: field.TypeString, Unique: true},
 		{Name: "vegan", Type: field.TypeBool, Default: false},
 		{Name: "pantry_ingredient", Type: field.TypeInt, Unique: true, Nullable: true},
-		{Name: "recipe_ingredient_ingredient", Type: field.TypeInt, Nullable: true},
+		{Name: "recipe_ingredient_ingredient", Type: field.TypeInt, Unique: true, Nullable: true},
 	}
 	// IngredientsTable holds the schema information for the "ingredients" table.
 	IngredientsTable = &schema.Table{

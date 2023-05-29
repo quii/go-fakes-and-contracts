@@ -21,6 +21,7 @@ func (RecipeIngredient) Fields() []ent.Field {
 // Edges of the RecipeIngredient.
 func (RecipeIngredient) Edges() []ent.Edge {
 	return []ent.Edge{
+		edge.From("recipe", Recipe.Type).Ref("recipeingredient").Unique(),
 		edge.To("ingredient", Ingredient.Type),
 	}
 }

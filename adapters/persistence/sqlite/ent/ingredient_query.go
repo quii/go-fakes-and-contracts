@@ -13,17 +13,19 @@ import (
 	"github.com/quii/go-fakes-and-contracts/adapters/persistence/sqlite/ent/ingredient"
 	"github.com/quii/go-fakes-and-contracts/adapters/persistence/sqlite/ent/pantry"
 	"github.com/quii/go-fakes-and-contracts/adapters/persistence/sqlite/ent/predicate"
+	"github.com/quii/go-fakes-and-contracts/adapters/persistence/sqlite/ent/recipeingredient"
 )
 
 // IngredientQuery is the builder for querying Ingredient entities.
 type IngredientQuery struct {
 	config
-	ctx        *QueryContext
-	order      []ingredient.OrderOption
-	inters     []Interceptor
-	predicates []predicate.Ingredient
-	withPantry *PantryQuery
-	withFKs    bool
+	ctx                  *QueryContext
+	order                []ingredient.OrderOption
+	inters               []Interceptor
+	predicates           []predicate.Ingredient
+	withPantry           *PantryQuery
+	withRecipeingredient *RecipeIngredientQuery
+	withFKs              bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -75,6 +77,28 @@ func (iq *IngredientQuery) QueryPantry() *PantryQuery {
 			sqlgraph.From(ingredient.Table, ingredient.FieldID, selector),
 			sqlgraph.To(pantry.Table, pantry.FieldID),
 			sqlgraph.Edge(sqlgraph.O2O, true, ingredient.PantryTable, ingredient.PantryColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(iq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryRecipeingredient chains the current query on the "recipeingredient" edge.
+func (iq *IngredientQuery) QueryRecipeingredient() *RecipeIngredientQuery {
+	query := (&RecipeIngredientClient{config: iq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := iq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := iq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ingredient.Table, ingredient.FieldID, selector),
+			sqlgraph.To(recipeingredient.Table, recipeingredient.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, ingredient.RecipeingredientTable, ingredient.RecipeingredientColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(iq.driver.Dialect(), step)
 		return fromU, nil
@@ -269,12 +293,13 @@ func (iq *IngredientQuery) Clone() *IngredientQuery {
 		return nil
 	}
 	return &IngredientQuery{
-		config:     iq.config,
-		ctx:        iq.ctx.Clone(),
-		order:      append([]ingredient.OrderOption{}, iq.order...),
-		inters:     append([]Interceptor{}, iq.inters...),
-		predicates: append([]predicate.Ingredient{}, iq.predicates...),
-		withPantry: iq.withPantry.Clone(),
+		config:               iq.config,
+		ctx:                  iq.ctx.Clone(),
+		order:                append([]ingredient.OrderOption{}, iq.order...),
+		inters:               append([]Interceptor{}, iq.inters...),
+		predicates:           append([]predicate.Ingredient{}, iq.predicates...),
+		withPantry:           iq.withPantry.Clone(),
+		withRecipeingredient: iq.withRecipeingredient.Clone(),
 		// clone intermediate query.
 		sql:  iq.sql.Clone(),
 		path: iq.path,
@@ -289,6 +314,17 @@ func (iq *IngredientQuery) WithPantry(opts ...func(*PantryQuery)) *IngredientQue
 		opt(query)
 	}
 	iq.withPantry = query
+	return iq
+}
+
+// WithRecipeingredient tells the query-builder to eager-load the nodes that are connected to
+// the "recipeingredient" edge. The optional arguments are used to configure the query builder of the edge.
+func (iq *IngredientQuery) WithRecipeingredient(opts ...func(*RecipeIngredientQuery)) *IngredientQuery {
+	query := (&RecipeIngredientClient{config: iq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	iq.withRecipeingredient = query
 	return iq
 }
 
@@ -371,11 +407,12 @@ func (iq *IngredientQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*I
 		nodes       = []*Ingredient{}
 		withFKs     = iq.withFKs
 		_spec       = iq.querySpec()
-		loadedTypes = [1]bool{
+		loadedTypes = [2]bool{
 			iq.withPantry != nil,
+			iq.withRecipeingredient != nil,
 		}
 	)
-	if iq.withPantry != nil {
+	if iq.withPantry != nil || iq.withRecipeingredient != nil {
 		withFKs = true
 	}
 	if withFKs {
@@ -402,6 +439,12 @@ func (iq *IngredientQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*I
 	if query := iq.withPantry; query != nil {
 		if err := iq.loadPantry(ctx, query, nodes, nil,
 			func(n *Ingredient, e *Pantry) { n.Edges.Pantry = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := iq.withRecipeingredient; query != nil {
+		if err := iq.loadRecipeingredient(ctx, query, nodes, nil,
+			func(n *Ingredient, e *RecipeIngredient) { n.Edges.Recipeingredient = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -433,6 +476,38 @@ func (iq *IngredientQuery) loadPantry(ctx context.Context, query *PantryQuery, n
 		nodes, ok := nodeids[n.ID]
 		if !ok {
 			return fmt.Errorf(`unexpected foreign-key "pantry_ingredient" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
+func (iq *IngredientQuery) loadRecipeingredient(ctx context.Context, query *RecipeIngredientQuery, nodes []*Ingredient, init func(*Ingredient), assign func(*Ingredient, *RecipeIngredient)) error {
+	ids := make([]int, 0, len(nodes))
+	nodeids := make(map[int][]*Ingredient)
+	for i := range nodes {
+		if nodes[i].recipe_ingredient_ingredient == nil {
+			continue
+		}
+		fk := *nodes[i].recipe_ingredient_ingredient
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(recipeingredient.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "recipe_ingredient_ingredient" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)

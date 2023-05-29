@@ -10,6 +10,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/quii/go-fakes-and-contracts/adapters/persistence/sqlite/ent/ingredient"
 	"github.com/quii/go-fakes-and-contracts/adapters/persistence/sqlite/ent/pantry"
+	"github.com/quii/go-fakes-and-contracts/adapters/persistence/sqlite/ent/recipeingredient"
 )
 
 // Ingredient is the model entity for the Ingredient schema.
@@ -33,9 +34,11 @@ type Ingredient struct {
 type IngredientEdges struct {
 	// Pantry holds the value of the pantry edge.
 	Pantry *Pantry `json:"pantry,omitempty"`
+	// Recipeingredient holds the value of the recipeingredient edge.
+	Recipeingredient *RecipeIngredient `json:"recipeingredient,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [2]bool
 }
 
 // PantryOrErr returns the Pantry value or an error if the edge
@@ -49,6 +52,19 @@ func (e IngredientEdges) PantryOrErr() (*Pantry, error) {
 		return e.Pantry, nil
 	}
 	return nil, &NotLoadedError{edge: "pantry"}
+}
+
+// RecipeingredientOrErr returns the Recipeingredient value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e IngredientEdges) RecipeingredientOrErr() (*RecipeIngredient, error) {
+	if e.loadedTypes[1] {
+		if e.Recipeingredient == nil {
+			// Edge was loaded but was not found.
+			return nil, &NotFoundError{label: recipeingredient.Label}
+		}
+		return e.Recipeingredient, nil
+	}
+	return nil, &NotLoadedError{edge: "recipeingredient"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -129,6 +145,11 @@ func (i *Ingredient) Value(name string) (ent.Value, error) {
 // QueryPantry queries the "pantry" edge of the Ingredient entity.
 func (i *Ingredient) QueryPantry() *PantryQuery {
 	return NewIngredientClient(i.config).QueryPantry(i)
+}
+
+// QueryRecipeingredient queries the "recipeingredient" edge of the Ingredient entity.
+func (i *Ingredient) QueryRecipeingredient() *RecipeIngredientQuery {
+	return NewIngredientClient(i.config).QueryRecipeingredient(i)
 }
 
 // Update returns a builder for updating this Ingredient.

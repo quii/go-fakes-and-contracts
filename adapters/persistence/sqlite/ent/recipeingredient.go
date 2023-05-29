@@ -8,6 +8,8 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
+	"github.com/quii/go-fakes-and-contracts/adapters/persistence/sqlite/ent/ingredient"
+	"github.com/quii/go-fakes-and-contracts/adapters/persistence/sqlite/ent/recipe"
 	"github.com/quii/go-fakes-and-contracts/adapters/persistence/sqlite/ent/recipeingredient"
 )
 
@@ -27,17 +29,36 @@ type RecipeIngredient struct {
 
 // RecipeIngredientEdges holds the relations/edges for other nodes in the graph.
 type RecipeIngredientEdges struct {
+	// Recipe holds the value of the recipe edge.
+	Recipe *Recipe `json:"recipe,omitempty"`
 	// Ingredient holds the value of the ingredient edge.
-	Ingredient []*Ingredient `json:"ingredient,omitempty"`
+	Ingredient *Ingredient `json:"ingredient,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [2]bool
+}
+
+// RecipeOrErr returns the Recipe value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e RecipeIngredientEdges) RecipeOrErr() (*Recipe, error) {
+	if e.loadedTypes[0] {
+		if e.Recipe == nil {
+			// Edge was loaded but was not found.
+			return nil, &NotFoundError{label: recipe.Label}
+		}
+		return e.Recipe, nil
+	}
+	return nil, &NotLoadedError{edge: "recipe"}
 }
 
 // IngredientOrErr returns the Ingredient value or an error if the edge
-// was not loaded in eager-loading.
-func (e RecipeIngredientEdges) IngredientOrErr() ([]*Ingredient, error) {
-	if e.loadedTypes[0] {
+// was not loaded in eager-loading, or loaded but was not found.
+func (e RecipeIngredientEdges) IngredientOrErr() (*Ingredient, error) {
+	if e.loadedTypes[1] {
+		if e.Ingredient == nil {
+			// Edge was loaded but was not found.
+			return nil, &NotFoundError{label: ingredient.Label}
+		}
 		return e.Ingredient, nil
 	}
 	return nil, &NotLoadedError{edge: "ingredient"}
@@ -97,6 +118,11 @@ func (ri *RecipeIngredient) assignValues(columns []string, values []any) error {
 // This includes values selected through modifiers, order, etc.
 func (ri *RecipeIngredient) Value(name string) (ent.Value, error) {
 	return ri.selectValues.Get(name)
+}
+
+// QueryRecipe queries the "recipe" edge of the RecipeIngredient entity.
+func (ri *RecipeIngredient) QueryRecipe() *RecipeQuery {
+	return NewRecipeIngredientClient(ri.config).QueryRecipe(ri)
 }
 
 // QueryIngredient queries the "ingredient" edge of the RecipeIngredient entity.

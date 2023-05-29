@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/quii/go-fakes-and-contracts/adapters/persistence/sqlite/ent/ingredient"
+	"github.com/quii/go-fakes-and-contracts/adapters/persistence/sqlite/ent/recipe"
 	"github.com/quii/go-fakes-and-contracts/adapters/persistence/sqlite/ent/recipeingredient"
 )
 
@@ -28,19 +29,42 @@ func (ric *RecipeIngredientCreate) SetQuantity(i int) *RecipeIngredientCreate {
 	return ric
 }
 
-// AddIngredientIDs adds the "ingredient" edge to the Ingredient entity by IDs.
-func (ric *RecipeIngredientCreate) AddIngredientIDs(ids ...int) *RecipeIngredientCreate {
-	ric.mutation.AddIngredientIDs(ids...)
+// SetRecipeID sets the "recipe" edge to the Recipe entity by ID.
+func (ric *RecipeIngredientCreate) SetRecipeID(id int) *RecipeIngredientCreate {
+	ric.mutation.SetRecipeID(id)
 	return ric
 }
 
-// AddIngredient adds the "ingredient" edges to the Ingredient entity.
-func (ric *RecipeIngredientCreate) AddIngredient(i ...*Ingredient) *RecipeIngredientCreate {
-	ids := make([]int, len(i))
-	for j := range i {
-		ids[j] = i[j].ID
+// SetNillableRecipeID sets the "recipe" edge to the Recipe entity by ID if the given value is not nil.
+func (ric *RecipeIngredientCreate) SetNillableRecipeID(id *int) *RecipeIngredientCreate {
+	if id != nil {
+		ric = ric.SetRecipeID(*id)
 	}
-	return ric.AddIngredientIDs(ids...)
+	return ric
+}
+
+// SetRecipe sets the "recipe" edge to the Recipe entity.
+func (ric *RecipeIngredientCreate) SetRecipe(r *Recipe) *RecipeIngredientCreate {
+	return ric.SetRecipeID(r.ID)
+}
+
+// SetIngredientID sets the "ingredient" edge to the Ingredient entity by ID.
+func (ric *RecipeIngredientCreate) SetIngredientID(id int) *RecipeIngredientCreate {
+	ric.mutation.SetIngredientID(id)
+	return ric
+}
+
+// SetNillableIngredientID sets the "ingredient" edge to the Ingredient entity by ID if the given value is not nil.
+func (ric *RecipeIngredientCreate) SetNillableIngredientID(id *int) *RecipeIngredientCreate {
+	if id != nil {
+		ric = ric.SetIngredientID(*id)
+	}
+	return ric
+}
+
+// SetIngredient sets the "ingredient" edge to the Ingredient entity.
+func (ric *RecipeIngredientCreate) SetIngredient(i *Ingredient) *RecipeIngredientCreate {
+	return ric.SetIngredientID(i.ID)
 }
 
 // Mutation returns the RecipeIngredientMutation object of the builder.
@@ -111,9 +135,26 @@ func (ric *RecipeIngredientCreate) createSpec() (*RecipeIngredient, *sqlgraph.Cr
 		_spec.SetField(recipeingredient.FieldQuantity, field.TypeInt, value)
 		_node.Quantity = value
 	}
+	if nodes := ric.mutation.RecipeIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   recipeingredient.RecipeTable,
+			Columns: []string{recipeingredient.RecipeColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(recipe.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.recipe_recipeingredient = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
 	if nodes := ric.mutation.IngredientIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
+			Rel:     sqlgraph.O2O,
 			Inverse: false,
 			Table:   recipeingredient.IngredientTable,
 			Columns: []string{recipeingredient.IngredientColumn},

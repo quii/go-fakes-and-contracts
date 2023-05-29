@@ -98,12 +98,35 @@ func QuantityLTE(v int) predicate.RecipeIngredient {
 	return predicate.RecipeIngredient(sql.FieldLTE(FieldQuantity, v))
 }
 
+// HasRecipe applies the HasEdge predicate on the "recipe" edge.
+func HasRecipe() predicate.RecipeIngredient {
+	return predicate.RecipeIngredient(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, RecipeTable, RecipeColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasRecipeWith applies the HasEdge predicate on the "recipe" edge with a given conditions (other predicates).
+func HasRecipeWith(preds ...predicate.Recipe) predicate.RecipeIngredient {
+	return predicate.RecipeIngredient(func(s *sql.Selector) {
+		step := newRecipeStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // HasIngredient applies the HasEdge predicate on the "ingredient" edge.
 func HasIngredient() predicate.RecipeIngredient {
 	return predicate.RecipeIngredient(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, IngredientTable, IngredientColumn),
+			sqlgraph.Edge(sqlgraph.O2O, false, IngredientTable, IngredientColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})

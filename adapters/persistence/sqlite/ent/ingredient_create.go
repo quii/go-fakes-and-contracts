@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/quii/go-fakes-and-contracts/adapters/persistence/sqlite/ent/ingredient"
 	"github.com/quii/go-fakes-and-contracts/adapters/persistence/sqlite/ent/pantry"
+	"github.com/quii/go-fakes-and-contracts/adapters/persistence/sqlite/ent/recipeingredient"
 )
 
 // IngredientCreate is the builder for creating a Ingredient entity.
@@ -59,6 +60,25 @@ func (ic *IngredientCreate) SetNillablePantryID(id *int) *IngredientCreate {
 // SetPantry sets the "pantry" edge to the Pantry entity.
 func (ic *IngredientCreate) SetPantry(p *Pantry) *IngredientCreate {
 	return ic.SetPantryID(p.ID)
+}
+
+// SetRecipeingredientID sets the "recipeingredient" edge to the RecipeIngredient entity by ID.
+func (ic *IngredientCreate) SetRecipeingredientID(id int) *IngredientCreate {
+	ic.mutation.SetRecipeingredientID(id)
+	return ic
+}
+
+// SetNillableRecipeingredientID sets the "recipeingredient" edge to the RecipeIngredient entity by ID if the given value is not nil.
+func (ic *IngredientCreate) SetNillableRecipeingredientID(id *int) *IngredientCreate {
+	if id != nil {
+		ic = ic.SetRecipeingredientID(*id)
+	}
+	return ic
+}
+
+// SetRecipeingredient sets the "recipeingredient" edge to the RecipeIngredient entity.
+func (ic *IngredientCreate) SetRecipeingredient(r *RecipeIngredient) *IngredientCreate {
+	return ic.SetRecipeingredientID(r.ID)
 }
 
 // Mutation returns the IngredientMutation object of the builder.
@@ -160,6 +180,23 @@ func (ic *IngredientCreate) createSpec() (*Ingredient, *sqlgraph.CreateSpec) {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.pantry_ingredient = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := ic.mutation.RecipeingredientIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   ingredient.RecipeingredientTable,
+			Columns: []string{ingredient.RecipeingredientColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(recipeingredient.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.recipe_ingredient_ingredient = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

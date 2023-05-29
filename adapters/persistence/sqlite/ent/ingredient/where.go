@@ -161,6 +161,29 @@ func HasPantryWith(preds ...predicate.Pantry) predicate.Ingredient {
 	})
 }
 
+// HasRecipeingredient applies the HasEdge predicate on the "recipeingredient" edge.
+func HasRecipeingredient() predicate.Ingredient {
+	return predicate.Ingredient(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, RecipeingredientTable, RecipeingredientColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasRecipeingredientWith applies the HasEdge predicate on the "recipeingredient" edge with a given conditions (other predicates).
+func HasRecipeingredientWith(preds ...predicate.RecipeIngredient) predicate.Ingredient {
+	return predicate.Ingredient(func(s *sql.Selector) {
+		step := newRecipeingredientStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.Ingredient) predicate.Ingredient {
 	return predicate.Ingredient(func(s *sql.Selector) {

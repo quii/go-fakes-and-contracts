@@ -13,6 +13,7 @@ import (
 	"github.com/quii/go-fakes-and-contracts/adapters/persistence/sqlite/ent/ingredient"
 	"github.com/quii/go-fakes-and-contracts/adapters/persistence/sqlite/ent/pantry"
 	"github.com/quii/go-fakes-and-contracts/adapters/persistence/sqlite/ent/predicate"
+	"github.com/quii/go-fakes-and-contracts/adapters/persistence/sqlite/ent/recipeingredient"
 )
 
 // IngredientUpdate is the builder for updating Ingredient entities.
@@ -67,6 +68,25 @@ func (iu *IngredientUpdate) SetPantry(p *Pantry) *IngredientUpdate {
 	return iu.SetPantryID(p.ID)
 }
 
+// SetRecipeingredientID sets the "recipeingredient" edge to the RecipeIngredient entity by ID.
+func (iu *IngredientUpdate) SetRecipeingredientID(id int) *IngredientUpdate {
+	iu.mutation.SetRecipeingredientID(id)
+	return iu
+}
+
+// SetNillableRecipeingredientID sets the "recipeingredient" edge to the RecipeIngredient entity by ID if the given value is not nil.
+func (iu *IngredientUpdate) SetNillableRecipeingredientID(id *int) *IngredientUpdate {
+	if id != nil {
+		iu = iu.SetRecipeingredientID(*id)
+	}
+	return iu
+}
+
+// SetRecipeingredient sets the "recipeingredient" edge to the RecipeIngredient entity.
+func (iu *IngredientUpdate) SetRecipeingredient(r *RecipeIngredient) *IngredientUpdate {
+	return iu.SetRecipeingredientID(r.ID)
+}
+
 // Mutation returns the IngredientMutation object of the builder.
 func (iu *IngredientUpdate) Mutation() *IngredientMutation {
 	return iu.mutation
@@ -75,6 +95,12 @@ func (iu *IngredientUpdate) Mutation() *IngredientMutation {
 // ClearPantry clears the "pantry" edge to the Pantry entity.
 func (iu *IngredientUpdate) ClearPantry() *IngredientUpdate {
 	iu.mutation.ClearPantry()
+	return iu
+}
+
+// ClearRecipeingredient clears the "recipeingredient" edge to the RecipeIngredient entity.
+func (iu *IngredientUpdate) ClearRecipeingredient() *IngredientUpdate {
+	iu.mutation.ClearRecipeingredient()
 	return iu
 }
 
@@ -149,6 +175,35 @@ func (iu *IngredientUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if iu.mutation.RecipeingredientCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   ingredient.RecipeingredientTable,
+			Columns: []string{ingredient.RecipeingredientColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(recipeingredient.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := iu.mutation.RecipeingredientIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   ingredient.RecipeingredientTable,
+			Columns: []string{ingredient.RecipeingredientColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(recipeingredient.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, iu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{ingredient.Label}
@@ -208,6 +263,25 @@ func (iuo *IngredientUpdateOne) SetPantry(p *Pantry) *IngredientUpdateOne {
 	return iuo.SetPantryID(p.ID)
 }
 
+// SetRecipeingredientID sets the "recipeingredient" edge to the RecipeIngredient entity by ID.
+func (iuo *IngredientUpdateOne) SetRecipeingredientID(id int) *IngredientUpdateOne {
+	iuo.mutation.SetRecipeingredientID(id)
+	return iuo
+}
+
+// SetNillableRecipeingredientID sets the "recipeingredient" edge to the RecipeIngredient entity by ID if the given value is not nil.
+func (iuo *IngredientUpdateOne) SetNillableRecipeingredientID(id *int) *IngredientUpdateOne {
+	if id != nil {
+		iuo = iuo.SetRecipeingredientID(*id)
+	}
+	return iuo
+}
+
+// SetRecipeingredient sets the "recipeingredient" edge to the RecipeIngredient entity.
+func (iuo *IngredientUpdateOne) SetRecipeingredient(r *RecipeIngredient) *IngredientUpdateOne {
+	return iuo.SetRecipeingredientID(r.ID)
+}
+
 // Mutation returns the IngredientMutation object of the builder.
 func (iuo *IngredientUpdateOne) Mutation() *IngredientMutation {
 	return iuo.mutation
@@ -216,6 +290,12 @@ func (iuo *IngredientUpdateOne) Mutation() *IngredientMutation {
 // ClearPantry clears the "pantry" edge to the Pantry entity.
 func (iuo *IngredientUpdateOne) ClearPantry() *IngredientUpdateOne {
 	iuo.mutation.ClearPantry()
+	return iuo
+}
+
+// ClearRecipeingredient clears the "recipeingredient" edge to the RecipeIngredient entity.
+func (iuo *IngredientUpdateOne) ClearRecipeingredient() *IngredientUpdateOne {
+	iuo.mutation.ClearRecipeingredient()
 	return iuo
 }
 
@@ -313,6 +393,35 @@ func (iuo *IngredientUpdateOne) sqlSave(ctx context.Context) (_node *Ingredient,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(pantry.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if iuo.mutation.RecipeingredientCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   ingredient.RecipeingredientTable,
+			Columns: []string{ingredient.RecipeingredientColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(recipeingredient.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := iuo.mutation.RecipeingredientIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: true,
+			Table:   ingredient.RecipeingredientTable,
+			Columns: []string{ingredient.RecipeingredientColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(recipeingredient.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

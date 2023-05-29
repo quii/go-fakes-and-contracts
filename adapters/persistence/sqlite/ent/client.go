@@ -327,6 +327,22 @@ func (c *IngredientClient) QueryPantry(i *Ingredient) *PantryQuery {
 	return query
 }
 
+// QueryRecipeingredient queries the recipeingredient edge of a Ingredient.
+func (c *IngredientClient) QueryRecipeingredient(i *Ingredient) *RecipeIngredientQuery {
+	query := (&RecipeIngredientClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := i.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ingredient.Table, ingredient.FieldID, id),
+			sqlgraph.To(recipeingredient.Table, recipeingredient.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, ingredient.RecipeingredientTable, ingredient.RecipeingredientColumn),
+		)
+		fromV = sqlgraph.Neighbors(i.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *IngredientClient) Hooks() []Hook {
 	return c.hooks.Ingredient
@@ -713,6 +729,22 @@ func (c *RecipeIngredientClient) GetX(ctx context.Context, id int) *RecipeIngred
 	return obj
 }
 
+// QueryRecipe queries the recipe edge of a RecipeIngredient.
+func (c *RecipeIngredientClient) QueryRecipe(ri *RecipeIngredient) *RecipeQuery {
+	query := (&RecipeClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := ri.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(recipeingredient.Table, recipeingredient.FieldID, id),
+			sqlgraph.To(recipe.Table, recipe.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, recipeingredient.RecipeTable, recipeingredient.RecipeColumn),
+		)
+		fromV = sqlgraph.Neighbors(ri.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // QueryIngredient queries the ingredient edge of a RecipeIngredient.
 func (c *RecipeIngredientClient) QueryIngredient(ri *RecipeIngredient) *IngredientQuery {
 	query := (&IngredientClient{config: c.config}).Query()
@@ -721,7 +753,7 @@ func (c *RecipeIngredientClient) QueryIngredient(ri *RecipeIngredient) *Ingredie
 		step := sqlgraph.NewStep(
 			sqlgraph.From(recipeingredient.Table, recipeingredient.FieldID, id),
 			sqlgraph.To(ingredient.Table, ingredient.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, recipeingredient.IngredientTable, recipeingredient.IngredientColumn),
+			sqlgraph.Edge(sqlgraph.O2O, false, recipeingredient.IngredientTable, recipeingredient.IngredientColumn),
 		)
 		fromV = sqlgraph.Neighbors(ri.driver.Dialect(), step)
 		return fromV, nil
