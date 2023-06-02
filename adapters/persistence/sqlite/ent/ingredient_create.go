@@ -62,23 +62,19 @@ func (ic *IngredientCreate) SetPantry(p *Pantry) *IngredientCreate {
 	return ic.SetPantryID(p.ID)
 }
 
-// SetRecipeingredientID sets the "recipeingredient" edge to the RecipeIngredient entity by ID.
-func (ic *IngredientCreate) SetRecipeingredientID(id int) *IngredientCreate {
-	ic.mutation.SetRecipeingredientID(id)
+// AddRecipeingredientIDs adds the "recipeingredient" edge to the RecipeIngredient entity by IDs.
+func (ic *IngredientCreate) AddRecipeingredientIDs(ids ...int) *IngredientCreate {
+	ic.mutation.AddRecipeingredientIDs(ids...)
 	return ic
 }
 
-// SetNillableRecipeingredientID sets the "recipeingredient" edge to the RecipeIngredient entity by ID if the given value is not nil.
-func (ic *IngredientCreate) SetNillableRecipeingredientID(id *int) *IngredientCreate {
-	if id != nil {
-		ic = ic.SetRecipeingredientID(*id)
+// AddRecipeingredient adds the "recipeingredient" edges to the RecipeIngredient entity.
+func (ic *IngredientCreate) AddRecipeingredient(r ...*RecipeIngredient) *IngredientCreate {
+	ids := make([]int, len(r))
+	for i := range r {
+		ids[i] = r[i].ID
 	}
-	return ic
-}
-
-// SetRecipeingredient sets the "recipeingredient" edge to the RecipeIngredient entity.
-func (ic *IngredientCreate) SetRecipeingredient(r *RecipeIngredient) *IngredientCreate {
-	return ic.SetRecipeingredientID(r.ID)
+	return ic.AddRecipeingredientIDs(ids...)
 }
 
 // Mutation returns the IngredientMutation object of the builder.
@@ -184,10 +180,10 @@ func (ic *IngredientCreate) createSpec() (*Ingredient, *sqlgraph.CreateSpec) {
 	}
 	if nodes := ic.mutation.RecipeingredientIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
+			Rel:     sqlgraph.M2M,
 			Inverse: true,
 			Table:   ingredient.RecipeingredientTable,
-			Columns: []string{ingredient.RecipeingredientColumn},
+			Columns: ingredient.RecipeingredientPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(recipeingredient.FieldID, field.TypeInt),
@@ -196,7 +192,6 @@ func (ic *IngredientCreate) createSpec() (*Ingredient, *sqlgraph.CreateSpec) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.recipe_ingredient_ingredient = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

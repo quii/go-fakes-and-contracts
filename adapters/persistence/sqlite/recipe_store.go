@@ -3,6 +3,7 @@ package sqlite
 import (
 	"context"
 	"entgo.io/ent/dialect"
+	"fmt"
 	"github.com/quii/go-fakes-and-contracts/adapters/persistence/sqlite/ent"
 	"github.com/quii/go-fakes-and-contracts/domain/ingredients"
 	"github.com/quii/go-fakes-and-contracts/domain/recipe"
@@ -70,12 +71,10 @@ func (r RecipeStore) AddRecipes(ctx context.Context, recipes ...recipe.Recipe) e
 			if err != nil {
 				return err
 			}
-			ri, err := r.client.RecipeIngredient.Create().
-				SetIngredient(savedIngredient).
-				SetQuantity(int(newIngredient.Quantity)).
-				Save(ctx)
+
+			ri, err := r.client.RecipeIngredient.Create().AddIngredient(savedIngredient).SetQuantity(int(newIngredient.Quantity)).Save(ctx)
 			if err != nil {
-				return err
+				return fmt.Errorf("could not create recipe ingredient: %v %w", newIngredient, err)
 			}
 
 			recipeIngredients = append(recipeIngredients, ri)
@@ -93,7 +92,4 @@ func (r RecipeStore) AddRecipes(ctx context.Context, recipes ...recipe.Recipe) e
 		}
 	}
 	return nil
-}
-
-func (r RecipeStore) Close() {
 }

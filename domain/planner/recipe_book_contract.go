@@ -13,20 +13,14 @@ type RecipeBook interface {
 	AddRecipes(context.Context, ...recipe.Recipe) error
 }
 
-type CloseableRecipeBook interface {
-	RecipeBook
-	Close()
-}
-
 type RecipeBookContract struct {
-	NewBook func() CloseableRecipeBook
+	NewBook func() RecipeBook
 }
 
 func (r RecipeBookContract) Test(t *testing.T) {
 	t.Run("it returns what is put in", func(t *testing.T) {
 		ctx := context.Background()
 		store := r.NewBook()
-		t.Cleanup(store.Close)
 
 		want := []recipe.Recipe{
 			{

@@ -6,7 +6,7 @@ import (
 )
 
 func TestInMemoryRecipeStore(t *testing.T) {
-	planner.RecipeBookContract{NewBook: func() planner.CloseableRecipeBook {
+	planner.RecipeBookContract{NewBook: func() planner.RecipeBook {
 		return NewRecipeStore()
 	}}.Test(t)
 }

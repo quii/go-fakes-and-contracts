@@ -335,7 +335,7 @@ func (c *IngredientClient) QueryRecipeingredient(i *Ingredient) *RecipeIngredien
 		step := sqlgraph.NewStep(
 			sqlgraph.From(ingredient.Table, ingredient.FieldID, id),
 			sqlgraph.To(recipeingredient.Table, recipeingredient.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, true, ingredient.RecipeingredientTable, ingredient.RecipeingredientColumn),
+			sqlgraph.Edge(sqlgraph.M2M, true, ingredient.RecipeingredientTable, ingredient.RecipeingredientPrimaryKey...),
 		)
 		fromV = sqlgraph.Neighbors(i.driver.Dialect(), step)
 		return fromV, nil
@@ -753,7 +753,7 @@ func (c *RecipeIngredientClient) QueryIngredient(ri *RecipeIngredient) *Ingredie
 		step := sqlgraph.NewStep(
 			sqlgraph.From(recipeingredient.Table, recipeingredient.FieldID, id),
 			sqlgraph.To(ingredient.Table, ingredient.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, false, recipeingredient.IngredientTable, recipeingredient.IngredientColumn),
+			sqlgraph.Edge(sqlgraph.M2M, false, recipeingredient.IngredientTable, recipeingredient.IngredientPrimaryKey...),
 		)
 		fromV = sqlgraph.Neighbors(ri.driver.Dialect(), step)
 		return fromV, nil

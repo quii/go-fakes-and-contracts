@@ -27,13 +27,11 @@ const (
 	RecipeInverseTable = "recipes"
 	// RecipeColumn is the table column denoting the recipe relation/edge.
 	RecipeColumn = "recipe_recipeingredient"
-	// IngredientTable is the table that holds the ingredient relation/edge.
-	IngredientTable = "ingredients"
+	// IngredientTable is the table that holds the ingredient relation/edge. The primary key declared below.
+	IngredientTable = "recipe_ingredient_ingredient"
 	// IngredientInverseTable is the table name for the Ingredient entity.
 	// It exists in this package in order to avoid circular dependency with the "ingredient" package.
 	IngredientInverseTable = "ingredients"
-	// IngredientColumn is the table column denoting the ingredient relation/edge.
-	IngredientColumn = "recipe_ingredient_ingredient"
 )
 
 // Columns holds all SQL columns for recipeingredient fields.
@@ -47,6 +45,12 @@ var Columns = []string{
 var ForeignKeys = []string{
 	"recipe_recipeingredient",
 }
+
+var (
+	// IngredientPrimaryKey and IngredientColumn2 are the table columns denoting the
+	// primary key for the ingredient relation (M2M).
+	IngredientPrimaryKey = []string{"recipe_ingredient_id", "ingredient_id"}
+)
 
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {
@@ -83,10 +87,17 @@ func ByRecipeField(field string, opts ...sql.OrderTermOption) OrderOption {
 	}
 }
 
-// ByIngredientField orders the results by ingredient field.
-func ByIngredientField(field string, opts ...sql.OrderTermOption) OrderOption {
+// ByIngredientCount orders the results by ingredient count.
+func ByIngredientCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newIngredientStep(), sql.OrderByField(field, opts...))
+		sqlgraph.OrderByNeighborsCount(s, newIngredientStep(), opts...)
+	}
+}
+
+// ByIngredient orders the results by ingredient terms.
+func ByIngredient(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newIngredientStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
 func newRecipeStep() *sqlgraph.Step {
@@ -100,6 +111,6 @@ func newIngredientStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(IngredientInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2O, false, IngredientTable, IngredientColumn),
+		sqlgraph.Edge(sqlgraph.M2M, false, IngredientTable, IngredientPrimaryKey...),
 	)
 }

@@ -15,3 +15,12 @@ func (i Ingredients) Has(ingredient Ingredient) bool {
 	}
 	return false
 }
+
+func (i Ingredients) NumberOf(ingredientName string) uint {
+	for _, pantryIngredient := range i {
+		if pantryIngredient.Name == ingredientName {
+			return pantryIngredient.Quantity
+		}
+	}
+	return 0
+}

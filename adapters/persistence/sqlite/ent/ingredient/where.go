@@ -166,7 +166,7 @@ func HasRecipeingredient() predicate.Ingredient {
 	return predicate.Ingredient(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, true, RecipeingredientTable, RecipeingredientColumn),
+			sqlgraph.Edge(sqlgraph.M2M, true, RecipeingredientTable, RecipeingredientPrimaryKey...),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})

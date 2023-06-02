@@ -8,24 +8,18 @@ import (
 )
 
 type Pantry interface {
-	GetIngredients(ctx context.Context) ([]ingredients.Ingredient, error)
+	GetIngredients(ctx context.Context) (ingredients.Ingredients, error)
 	Store(context.Context, ...ingredients.Ingredient) error
 }
 
-type CloseablePantry interface {
-	Pantry
-	Close()
-}
-
 type PantryContract struct {
-	NewPantry func() CloseablePantry
+	NewPantry func() Pantry
 }
 
 func (s PantryContract) Test(t *testing.T) {
 	t.Run("it returns what is put in", func(t *testing.T) {
 		ctx := context.Background()
 		store := s.NewPantry()
-		t.Cleanup(store.Close)
 
 		want := []ingredients.Ingredient{
 			{Name: "Bananas", Quantity: 2},
@@ -44,7 +38,6 @@ func (s PantryContract) Test(t *testing.T) {
 	t.Run("it adds to the quantity of ingredients", func(t *testing.T) {
 		ctx := context.Background()
 		pantry := s.NewPantry()
-		t.Cleanup(pantry.Close)
 
 		assert.NoError(t, pantry.Store(ctx, ingredients.Ingredient{
 			Name:     "Orange",
@@ -61,7 +54,6 @@ func (s PantryContract) Test(t *testing.T) {
 
 		got, err := pantry.GetIngredients(ctx)
 		assert.NoError(t, err)
-		assert.Equal(t, len(got), 1)
-		assert.Equal(t, got[0].Quantity, 3)
+		assert.Equal(t, got.NumberOf("Orange"), 3)
 	})
 }

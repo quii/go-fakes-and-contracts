@@ -99,7 +99,7 @@ func (riq *RecipeIngredientQuery) QueryIngredient() *IngredientQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(recipeingredient.Table, recipeingredient.FieldID, selector),
 			sqlgraph.To(ingredient.Table, ingredient.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, false, recipeingredient.IngredientTable, recipeingredient.IngredientColumn),
+			sqlgraph.Edge(sqlgraph.M2M, false, recipeingredient.IngredientTable, recipeingredient.IngredientPrimaryKey...),
 		)
 		fromU = sqlgraph.SetNeighbors(riq.driver.Dialect(), step)
 		return fromU, nil
@@ -444,8 +444,9 @@ func (riq *RecipeIngredientQuery) sqlAll(ctx context.Context, hooks ...queryHook
 		}
 	}
 	if query := riq.withIngredient; query != nil {
-		if err := riq.loadIngredient(ctx, query, nodes, nil,
-			func(n *RecipeIngredient, e *Ingredient) { n.Edges.Ingredient = e }); err != nil {
+		if err := riq.loadIngredient(ctx, query, nodes,
+			func(n *RecipeIngredient) { n.Edges.Ingredient = []*Ingredient{} },
+			func(n *RecipeIngredient, e *Ingredient) { n.Edges.Ingredient = append(n.Edges.Ingredient, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -485,30 +486,63 @@ func (riq *RecipeIngredientQuery) loadRecipe(ctx context.Context, query *RecipeQ
 	return nil
 }
 func (riq *RecipeIngredientQuery) loadIngredient(ctx context.Context, query *IngredientQuery, nodes []*RecipeIngredient, init func(*RecipeIngredient), assign func(*RecipeIngredient, *Ingredient)) error {
-	fks := make([]driver.Value, 0, len(nodes))
-	nodeids := make(map[int]*RecipeIngredient)
-	for i := range nodes {
-		fks = append(fks, nodes[i].ID)
-		nodeids[nodes[i].ID] = nodes[i]
+	edgeIDs := make([]driver.Value, len(nodes))
+	byID := make(map[int]*RecipeIngredient)
+	nids := make(map[int]map[*RecipeIngredient]struct{})
+	for i, node := range nodes {
+		edgeIDs[i] = node.ID
+		byID[node.ID] = node
+		if init != nil {
+			init(node)
+		}
 	}
-	query.withFKs = true
-	query.Where(predicate.Ingredient(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(recipeingredient.IngredientColumn), fks...))
-	}))
-	neighbors, err := query.All(ctx)
+	query.Where(func(s *sql.Selector) {
+		joinT := sql.Table(recipeingredient.IngredientTable)
+		s.Join(joinT).On(s.C(ingredient.FieldID), joinT.C(recipeingredient.IngredientPrimaryKey[1]))
+		s.Where(sql.InValues(joinT.C(recipeingredient.IngredientPrimaryKey[0]), edgeIDs...))
+		columns := s.SelectedColumns()
+		s.Select(joinT.C(recipeingredient.IngredientPrimaryKey[0]))
+		s.AppendSelect(columns...)
+		s.SetDistinct(false)
+	})
+	if err := query.prepareQuery(ctx); err != nil {
+		return err
+	}
+	qr := QuerierFunc(func(ctx context.Context, q Query) (Value, error) {
+		return query.sqlAll(ctx, func(_ context.Context, spec *sqlgraph.QuerySpec) {
+			assign := spec.Assign
+			values := spec.ScanValues
+			spec.ScanValues = func(columns []string) ([]any, error) {
+				values, err := values(columns[1:])
+				if err != nil {
+					return nil, err
+				}
+				return append([]any{new(sql.NullInt64)}, values...), nil
+			}
+			spec.Assign = func(columns []string, values []any) error {
+				outValue := int(values[0].(*sql.NullInt64).Int64)
+				inValue := int(values[1].(*sql.NullInt64).Int64)
+				if nids[inValue] == nil {
+					nids[inValue] = map[*RecipeIngredient]struct{}{byID[outValue]: {}}
+					return assign(columns[1:], values[1:])
+				}
+				nids[inValue][byID[outValue]] = struct{}{}
+				return nil
+			}
+		})
+	})
+	neighbors, err := withInterceptors[[]*Ingredient](ctx, query, qr, query.inters)
 	if err != nil {
 		return err
 	}
 	for _, n := range neighbors {
-		fk := n.recipe_ingredient_ingredient
-		if fk == nil {
-			return fmt.Errorf(`foreign-key "recipe_ingredient_ingredient" is nil for node %v`, n.ID)
-		}
-		node, ok := nodeids[*fk]
+		nodes, ok := nids[n.ID]
 		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "recipe_ingredient_ingredient" returned %v for node %v`, *fk, n.ID)
+			return fmt.Errorf(`unexpected "ingredient" node returned %v`, n.ID)
 		}
-		assign(node, n)
+		for kn := range nodes {
+			assign(kn, n)
+		}
 	}
 	return nil
 }

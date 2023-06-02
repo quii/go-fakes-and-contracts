@@ -43,7 +43,8 @@ type IngredientMutation struct {
 	clearedFields           map[string]struct{}
 	pantry                  *int
 	clearedpantry           bool
-	recipeingredient        *int
+	recipeingredient        map[int]struct{}
+	removedrecipeingredient map[int]struct{}
 	clearedrecipeingredient bool
 	done                    bool
 	oldValue                func(context.Context) (*Ingredient, error)
@@ -259,9 +260,14 @@ func (m *IngredientMutation) ResetPantry() {
 	m.clearedpantry = false
 }
 
-// SetRecipeingredientID sets the "recipeingredient" edge to the RecipeIngredient entity by id.
-func (m *IngredientMutation) SetRecipeingredientID(id int) {
-	m.recipeingredient = &id
+// AddRecipeingredientIDs adds the "recipeingredient" edge to the RecipeIngredient entity by ids.
+func (m *IngredientMutation) AddRecipeingredientIDs(ids ...int) {
+	if m.recipeingredient == nil {
+		m.recipeingredient = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.recipeingredient[ids[i]] = struct{}{}
+	}
 }
 
 // ClearRecipeingredient clears the "recipeingredient" edge to the RecipeIngredient entity.
@@ -274,20 +280,29 @@ func (m *IngredientMutation) RecipeingredientCleared() bool {
 	return m.clearedrecipeingredient
 }
 
-// RecipeingredientID returns the "recipeingredient" edge ID in the mutation.
-func (m *IngredientMutation) RecipeingredientID() (id int, exists bool) {
-	if m.recipeingredient != nil {
-		return *m.recipeingredient, true
+// RemoveRecipeingredientIDs removes the "recipeingredient" edge to the RecipeIngredient entity by IDs.
+func (m *IngredientMutation) RemoveRecipeingredientIDs(ids ...int) {
+	if m.removedrecipeingredient == nil {
+		m.removedrecipeingredient = make(map[int]struct{})
+	}
+	for i := range ids {
+		delete(m.recipeingredient, ids[i])
+		m.removedrecipeingredient[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedRecipeingredient returns the removed IDs of the "recipeingredient" edge to the RecipeIngredient entity.
+func (m *IngredientMutation) RemovedRecipeingredientIDs() (ids []int) {
+	for id := range m.removedrecipeingredient {
+		ids = append(ids, id)
 	}
 	return
 }
 
 // RecipeingredientIDs returns the "recipeingredient" edge IDs in the mutation.
-// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// RecipeingredientID instead. It exists only for internal usage by the builders.
 func (m *IngredientMutation) RecipeingredientIDs() (ids []int) {
-	if id := m.recipeingredient; id != nil {
-		ids = append(ids, *id)
+	for id := range m.recipeingredient {
+		ids = append(ids, id)
 	}
 	return
 }
@@ -296,6 +311,7 @@ func (m *IngredientMutation) RecipeingredientIDs() (ids []int) {
 func (m *IngredientMutation) ResetRecipeingredient() {
 	m.recipeingredient = nil
 	m.clearedrecipeingredient = false
+	m.removedrecipeingredient = nil
 }
 
 // Where appends a list predicates to the IngredientMutation builder.
@@ -467,9 +483,11 @@ func (m *IngredientMutation) AddedIDs(name string) []ent.Value {
 			return []ent.Value{*id}
 		}
 	case ingredient.EdgeRecipeingredient:
-		if id := m.recipeingredient; id != nil {
-			return []ent.Value{*id}
+		ids := make([]ent.Value, 0, len(m.recipeingredient))
+		for id := range m.recipeingredient {
+			ids = append(ids, id)
 		}
+		return ids
 	}
 	return nil
 }
@@ -477,12 +495,23 @@ func (m *IngredientMutation) AddedIDs(name string) []ent.Value {
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *IngredientMutation) RemovedEdges() []string {
 	edges := make([]string, 0, 2)
+	if m.removedrecipeingredient != nil {
+		edges = append(edges, ingredient.EdgeRecipeingredient)
+	}
 	return edges
 }
 
 // RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
 // the given name in this mutation.
 func (m *IngredientMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case ingredient.EdgeRecipeingredient:
+		ids := make([]ent.Value, 0, len(m.removedrecipeingredient))
+		for id := range m.removedrecipeingredient {
+			ids = append(ids, id)
+		}
+		return ids
+	}
 	return nil
 }
 
@@ -516,9 +545,6 @@ func (m *IngredientMutation) ClearEdge(name string) error {
 	switch name {
 	case ingredient.EdgePantry:
 		m.ClearPantry()
-		return nil
-	case ingredient.EdgeRecipeingredient:
-		m.ClearRecipeingredient()
 		return nil
 	}
 	return fmt.Errorf("unknown Ingredient unique edge %s", name)
@@ -1541,7 +1567,8 @@ type RecipeIngredientMutation struct {
 	clearedFields     map[string]struct{}
 	recipe            *int
 	clearedrecipe     bool
-	ingredient        *int
+	ingredient        map[int]struct{}
+	removedingredient map[int]struct{}
 	clearedingredient bool
 	done              bool
 	oldValue          func(context.Context) (*RecipeIngredient, error)
@@ -1741,9 +1768,14 @@ func (m *RecipeIngredientMutation) ResetRecipe() {
 	m.clearedrecipe = false
 }
 
-// SetIngredientID sets the "ingredient" edge to the Ingredient entity by id.
-func (m *RecipeIngredientMutation) SetIngredientID(id int) {
-	m.ingredient = &id
+// AddIngredientIDs adds the "ingredient" edge to the Ingredient entity by ids.
+func (m *RecipeIngredientMutation) AddIngredientIDs(ids ...int) {
+	if m.ingredient == nil {
+		m.ingredient = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.ingredient[ids[i]] = struct{}{}
+	}
 }
 
 // ClearIngredient clears the "ingredient" edge to the Ingredient entity.
@@ -1756,20 +1788,29 @@ func (m *RecipeIngredientMutation) IngredientCleared() bool {
 	return m.clearedingredient
 }
 
-// IngredientID returns the "ingredient" edge ID in the mutation.
-func (m *RecipeIngredientMutation) IngredientID() (id int, exists bool) {
-	if m.ingredient != nil {
-		return *m.ingredient, true
+// RemoveIngredientIDs removes the "ingredient" edge to the Ingredient entity by IDs.
+func (m *RecipeIngredientMutation) RemoveIngredientIDs(ids ...int) {
+	if m.removedingredient == nil {
+		m.removedingredient = make(map[int]struct{})
+	}
+	for i := range ids {
+		delete(m.ingredient, ids[i])
+		m.removedingredient[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedIngredient returns the removed IDs of the "ingredient" edge to the Ingredient entity.
+func (m *RecipeIngredientMutation) RemovedIngredientIDs() (ids []int) {
+	for id := range m.removedingredient {
+		ids = append(ids, id)
 	}
 	return
 }
 
 // IngredientIDs returns the "ingredient" edge IDs in the mutation.
-// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// IngredientID instead. It exists only for internal usage by the builders.
 func (m *RecipeIngredientMutation) IngredientIDs() (ids []int) {
-	if id := m.ingredient; id != nil {
-		ids = append(ids, *id)
+	for id := range m.ingredient {
+		ids = append(ids, id)
 	}
 	return
 }
@@ -1778,6 +1819,7 @@ func (m *RecipeIngredientMutation) IngredientIDs() (ids []int) {
 func (m *RecipeIngredientMutation) ResetIngredient() {
 	m.ingredient = nil
 	m.clearedingredient = false
+	m.removedingredient = nil
 }
 
 // Where appends a list predicates to the RecipeIngredientMutation builder.
@@ -1947,9 +1989,11 @@ func (m *RecipeIngredientMutation) AddedIDs(name string) []ent.Value {
 			return []ent.Value{*id}
 		}
 	case recipeingredient.EdgeIngredient:
-		if id := m.ingredient; id != nil {
-			return []ent.Value{*id}
+		ids := make([]ent.Value, 0, len(m.ingredient))
+		for id := range m.ingredient {
+			ids = append(ids, id)
 		}
+		return ids
 	}
 	return nil
 }
@@ -1957,12 +2001,23 @@ func (m *RecipeIngredientMutation) AddedIDs(name string) []ent.Value {
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *RecipeIngredientMutation) RemovedEdges() []string {
 	edges := make([]string, 0, 2)
+	if m.removedingredient != nil {
+		edges = append(edges, recipeingredient.EdgeIngredient)
+	}
 	return edges
 }
 
 // RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
 // the given name in this mutation.
 func (m *RecipeIngredientMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case recipeingredient.EdgeIngredient:
+		ids := make([]ent.Value, 0, len(m.removedingredient))
+		for id := range m.removedingredient {
+			ids = append(ids, id)
+		}
+		return ids
+	}
 	return nil
 }
 
@@ -1996,9 +2051,6 @@ func (m *RecipeIngredientMutation) ClearEdge(name string) error {
 	switch name {
 	case recipeingredient.EdgeRecipe:
 		m.ClearRecipe()
-		return nil
-	case recipeingredient.EdgeIngredient:
-		m.ClearIngredient()
 		return nil
 	}
 	return fmt.Errorf("unknown RecipeIngredient unique edge %s", name)

@@ -23,7 +23,6 @@ func (Ingredient) Fields() []ent.Field {
 func (Ingredient) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("pantry", Pantry.Type).Ref("ingredient").Unique(),
-		edge.From("recipeingredient", RecipeIngredient.Type).
-			Ref("ingredient").Unique(),
+		edge.From("recipeingredient", RecipeIngredient.Type).Ref("ingredient"),
 	}
 }

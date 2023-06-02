@@ -10,7 +10,6 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/quii/go-fakes-and-contracts/adapters/persistence/sqlite/ent/ingredient"
 	"github.com/quii/go-fakes-and-contracts/adapters/persistence/sqlite/ent/pantry"
-	"github.com/quii/go-fakes-and-contracts/adapters/persistence/sqlite/ent/recipeingredient"
 )
 
 // Ingredient is the model entity for the Ingredient schema.
@@ -24,10 +23,9 @@ type Ingredient struct {
 	Vegan bool `json:"vegan,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the IngredientQuery when eager-loading is set.
-	Edges                        IngredientEdges `json:"edges"`
-	pantry_ingredient            *int
-	recipe_ingredient_ingredient *int
-	selectValues                 sql.SelectValues
+	Edges             IngredientEdges `json:"edges"`
+	pantry_ingredient *int
+	selectValues      sql.SelectValues
 }
 
 // IngredientEdges holds the relations/edges for other nodes in the graph.
@@ -35,7 +33,7 @@ type IngredientEdges struct {
 	// Pantry holds the value of the pantry edge.
 	Pantry *Pantry `json:"pantry,omitempty"`
 	// Recipeingredient holds the value of the recipeingredient edge.
-	Recipeingredient *RecipeIngredient `json:"recipeingredient,omitempty"`
+	Recipeingredient []*RecipeIngredient `json:"recipeingredient,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
 	loadedTypes [2]bool
@@ -55,13 +53,9 @@ func (e IngredientEdges) PantryOrErr() (*Pantry, error) {
 }
 
 // RecipeingredientOrErr returns the Recipeingredient value or an error if the edge
-// was not loaded in eager-loading, or loaded but was not found.
-func (e IngredientEdges) RecipeingredientOrErr() (*RecipeIngredient, error) {
+// was not loaded in eager-loading.
+func (e IngredientEdges) RecipeingredientOrErr() ([]*RecipeIngredient, error) {
 	if e.loadedTypes[1] {
-		if e.Recipeingredient == nil {
-			// Edge was loaded but was not found.
-			return nil, &NotFoundError{label: recipeingredient.Label}
-		}
 		return e.Recipeingredient, nil
 	}
 	return nil, &NotLoadedError{edge: "recipeingredient"}
@@ -79,8 +73,6 @@ func (*Ingredient) scanValues(columns []string) ([]any, error) {
 		case ingredient.FieldName:
 			values[i] = new(sql.NullString)
 		case ingredient.ForeignKeys[0]: // pantry_ingredient
-			values[i] = new(sql.NullInt64)
-		case ingredient.ForeignKeys[1]: // recipe_ingredient_ingredient
 			values[i] = new(sql.NullInt64)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -121,13 +113,6 @@ func (i *Ingredient) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				i.pantry_ingredient = new(int)
 				*i.pantry_ingredient = int(value.Int64)
-			}
-		case ingredient.ForeignKeys[1]:
-			if value, ok := values[j].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for edge-field recipe_ingredient_ingredient", value)
-			} else if value.Valid {
-				i.recipe_ingredient_ingredient = new(int)
-				*i.recipe_ingredient_ingredient = int(value.Int64)
 			}
 		default:
 			i.selectValues.Set(columns[j], values[j])

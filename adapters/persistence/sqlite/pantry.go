@@ -2,38 +2,30 @@ package sqlite
 
 import (
 	"context"
-	"entgo.io/ent/dialect"
+	_ "github.com/mattn/go-sqlite3"
 	"github.com/quii/go-fakes-and-contracts/adapters/persistence/sqlite/ent"
 	"github.com/quii/go-fakes-and-contracts/adapters/persistence/sqlite/ent/ingredient"
 	"github.com/quii/go-fakes-and-contracts/adapters/persistence/sqlite/ent/pantry"
 	"github.com/quii/go-fakes-and-contracts/domain/ingredients"
-	"log"
-
-	_ "github.com/mattn/go-sqlite3"
 )
 
 type Pantry struct {
 	client *ent.Client
 }
 
-func NewPantry() *Pantry {
-	client, err := ent.Open(dialect.SQLite, "file:ent?mode=memory&cache=shared&_fk=1")
-	if err != nil {
-		log.Fatalf("failed opening connection to sqlite: %v", err)
+func NewPantry(client *ent.Client) *Pantry {
+	return &Pantry{
+		client: client,
 	}
-	if err := client.Schema.Create(context.Background()); err != nil {
-		log.Fatalf("failed creating schema resources: %v", err)
-	}
-	return &Pantry{client: client}
 }
 
-func (i Pantry) GetIngredients(ctx context.Context) ([]ingredients.Ingredient, error) {
+func (i Pantry) GetIngredients(ctx context.Context) (ingredients.Ingredients, error) {
 	persistedPantry, err := i.client.Pantry.Query().WithIngredient().All(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	var allIngredients []ingredients.Ingredient
+	var allIngredients ingredients.Ingredients
 	for _, pantryItem := range persistedPantry {
 		allIngredients = append(allIngredients, ingredients.Ingredient{
 			Name:     pantryItem.Edges.Ingredient.Name,
@@ -63,13 +55,10 @@ func (i Pantry) Store(ctx context.Context, ingredients ...ingredients.Ingredient
 			}
 			continue
 		}
-		pantryItem[0].Update().AddQuantity(int(newIngredient.Quantity)).Exec(ctx)
+		err = pantryItem[0].Update().AddQuantity(int(newIngredient.Quantity)).Exec(ctx)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
-}
-
-func (i Pantry) Close() {
-	if err := i.client.Close(); err != nil {
-		log.Println("couldn't close sqlite3 client", err)
-	}
 }

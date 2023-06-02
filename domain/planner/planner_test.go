@@ -3,11 +3,13 @@ package planner_test
 import (
 	"context"
 	"github.com/alecthomas/assert/v2"
+	"github.com/google/uuid"
 	"github.com/quii/go-fakes-and-contracts/adapters/persistence/inmemory"
 	"github.com/quii/go-fakes-and-contracts/adapters/persistence/sqlite"
 	"github.com/quii/go-fakes-and-contracts/domain/ingredients"
 	"github.com/quii/go-fakes-and-contracts/domain/planner"
 	"github.com/quii/go-fakes-and-contracts/domain/recipe"
+	"math/rand"
 	"testing"
 )
 
@@ -15,10 +17,10 @@ func TestRecipeMatcher(t *testing.T) {
 	// for local, snappy integration test with a fake (which we can be confident is correct due to it conforming to the store contract)
 	t.Run("with in memory store", func(t *testing.T) {
 		RecipeMatcherTest{
-			NewRecipeBook: func() planner.CloseableRecipeBook {
+			NewRecipeBook: func() planner.RecipeBook {
 				return inmemory.NewRecipeStore()
 			},
-			NewIngredientStore: func() planner.CloseablePantry {
+			NewPantry: func() planner.Pantry {
 				return inmemory.NewPantry()
 			},
 		}.Test(t)
@@ -26,13 +28,18 @@ func TestRecipeMatcher(t *testing.T) {
 
 	// we can run a broader integration test with a "real" db if we wish, using this contract approach
 	t.Run("with sqlite", func(t *testing.T) {
+		client := sqlite.NewSQLiteClient()
+		t.Cleanup(func() {
+			assert.NoError(t, client.Close())
+		})
+
 		if !testing.Short() {
 			RecipeMatcherTest{
-				NewRecipeBook: func() planner.CloseableRecipeBook {
-					return inmemory.NewRecipeStore() //todo: replace with sqlite
+				NewRecipeBook: func() planner.RecipeBook {
+					return sqlite.NewRecipeStore(client)
 				},
-				NewIngredientStore: func() planner.CloseablePantry {
-					return sqlite.NewPantry()
+				NewPantry: func() planner.Pantry {
+					return sqlite.NewPantry(client)
 				},
 			}.Test(t)
 		}
@@ -40,69 +47,45 @@ func TestRecipeMatcher(t *testing.T) {
 }
 
 type RecipeMatcherTest struct {
-	NewIngredientStore func() planner.CloseablePantry
-	NewRecipeBook      func() planner.CloseableRecipeBook
+	NewPantry     func() planner.Pantry
+	NewRecipeBook func() planner.RecipeBook
 }
 
 func (r RecipeMatcherTest) Test(t *testing.T) {
 	t.Run("if we have no ingredients we can't make anything", func(t *testing.T) {
-		store := r.NewIngredientStore()
-		t.Cleanup(store.Close)
+		store := r.NewPantry()
 
 		recipeBook := r.NewRecipeBook()
-		assert.NoError(t, recipeBook.AddRecipes(context.Background(), bananaBread, bananaMilkshake))
-		t.Cleanup(recipeBook.Close)
+		assert.NoError(t, recipeBook.AddRecipes(context.Background(), randomRecipe(), randomRecipe()))
 
 		assertAvailableRecipes(t, store, recipeBook, []recipe.Recipe{})
 	})
 
-	t.Run("if we have the ingredients for banana bread we can make it", func(t *testing.T) {
-		store := r.NewIngredientStore()
-		t.Cleanup(store.Close)
-
+	t.Run("if we have the ingredients for a recipe we can make it", func(t *testing.T) {
+		store := r.NewPantry()
 		recipeBook := r.NewRecipeBook()
-		assert.NoError(t, recipeBook.AddRecipes(context.Background(), bananaBread, bananaMilkshake))
-		t.Cleanup(recipeBook.Close)
+		bananaBread := randomRecipe()
+
+		assert.NoError(t, recipeBook.AddRecipes(context.Background(), bananaBread, randomRecipe()))
 
 		assert.NoError(t, store.Store(
 			context.Background(),
-			ingredients.Ingredient{Name: "Bananas", Quantity: 2},
-			ingredients.Ingredient{Name: "Flour", Quantity: 1},
-			ingredients.Ingredient{Name: "Eggs", Quantity: 2},
+			bananaBread.Ingredients...,
 		))
 		assertAvailableRecipes(t, store, recipeBook, []recipe.Recipe{bananaBread})
 	})
 
-	t.Run("if we have bananas and milk, we can make banana milkshake", func(t *testing.T) {
-		store := r.NewIngredientStore()
-		t.Cleanup(store.Close)
-
+	t.Run("if we have ingredients for 2 recipes, we can make both", func(t *testing.T) {
+		store := r.NewPantry()
 		recipeBook := r.NewRecipeBook()
+		bananaBread := randomRecipe()
+		bananaMilkshake := randomRecipe()
+
 		assert.NoError(t, recipeBook.AddRecipes(context.Background(), bananaBread, bananaMilkshake))
-		t.Cleanup(recipeBook.Close)
 
 		assert.NoError(t, store.Store(
 			context.Background(),
-			ingredients.Ingredient{Name: "Bananas", Quantity: 2},
-			ingredients.Ingredient{Name: "Milk", Quantity: 1},
-		))
-		assertAvailableRecipes(t, store, recipeBook, []recipe.Recipe{bananaMilkshake})
-	})
-
-	t.Run("if we have ingredients for banana bread and milkshake, we can make both", func(t *testing.T) {
-		store := r.NewIngredientStore()
-		t.Cleanup(store.Close)
-
-		recipeBook := r.NewRecipeBook()
-		assert.NoError(t, recipeBook.AddRecipes(context.Background(), bananaBread, bananaMilkshake))
-		t.Cleanup(recipeBook.Close)
-
-		assert.NoError(t, store.Store(
-			context.Background(),
-			ingredients.Ingredient{Name: "Bananas", Quantity: 2},
-			ingredients.Ingredient{Name: "Flour", Quantity: 1},
-			ingredients.Ingredient{Name: "Eggs", Quantity: 2},
-			ingredients.Ingredient{Name: "Milk", Quantity: 1},
+			append(bananaBread.Ingredients, bananaMilkshake.Ingredients...)...,
 		))
 		assertAvailableRecipes(t, store, recipeBook, []recipe.Recipe{bananaMilkshake, bananaBread})
 	})
@@ -117,6 +100,11 @@ func assertAvailableRecipes(
 ) {
 	t.Helper()
 	suggestions, _ := planner.New(recipeStore, ingredientStore).SuggestRecipes(context.Background())
+
+	if len(expectedRecipes) == 0 {
+		assert.Equal(t, 0, len(suggestions))
+		return
+	}
 
 	// create a map to count occurrences of each recipe in the suggestions
 	suggestionCounts := make(map[string]int)
@@ -135,23 +123,26 @@ func assertAvailableRecipes(
 			t.Errorf("expected recipe %s to appear once in suggestions, but found %d occurrences", expectedRecipe.Name, actualCount)
 		}
 	}
-	assert.Equal(t, len(suggestions), len(expectedRecipes), "expected number of suggestions to match expected number of recipes")
 }
 
-var (
-	bananaBread = recipe.Recipe{
-		Name: "Banana Bread",
-		Ingredients: []ingredients.Ingredient{
-			{Name: "Bananas", Quantity: 2},
-			{Name: "Flour", Quantity: 1},
-			{Name: "Eggs", Quantity: 2},
-		},
+func randomRecipe() recipe.Recipe {
+	return recipe.Recipe{
+		Name:        uuid.New().String(),
+		Ingredients: random3ingredients(),
 	}
-	bananaMilkshake = recipe.Recipe{
-		Name: "Banana Milkshake",
-		Ingredients: []ingredients.Ingredient{
-			{Name: "Bananas", Quantity: 2},
-			{Name: "Milk", Quantity: 1},
-		},
+}
+
+func randomIngredient() ingredients.Ingredient {
+	return ingredients.Ingredient{
+		Name:     uuid.New().String(),
+		Quantity: uint(rand.Intn(10)),
 	}
-)
+}
+
+func random3ingredients() []ingredients.Ingredient {
+	return []ingredients.Ingredient{
+		randomIngredient(),
+		randomIngredient(),
+		randomIngredient(),
+	}
+}

@@ -48,23 +48,19 @@ func (ric *RecipeIngredientCreate) SetRecipe(r *Recipe) *RecipeIngredientCreate 
 	return ric.SetRecipeID(r.ID)
 }
 
-// SetIngredientID sets the "ingredient" edge to the Ingredient entity by ID.
-func (ric *RecipeIngredientCreate) SetIngredientID(id int) *RecipeIngredientCreate {
-	ric.mutation.SetIngredientID(id)
+// AddIngredientIDs adds the "ingredient" edge to the Ingredient entity by IDs.
+func (ric *RecipeIngredientCreate) AddIngredientIDs(ids ...int) *RecipeIngredientCreate {
+	ric.mutation.AddIngredientIDs(ids...)
 	return ric
 }
 
-// SetNillableIngredientID sets the "ingredient" edge to the Ingredient entity by ID if the given value is not nil.
-func (ric *RecipeIngredientCreate) SetNillableIngredientID(id *int) *RecipeIngredientCreate {
-	if id != nil {
-		ric = ric.SetIngredientID(*id)
+// AddIngredient adds the "ingredient" edges to the Ingredient entity.
+func (ric *RecipeIngredientCreate) AddIngredient(i ...*Ingredient) *RecipeIngredientCreate {
+	ids := make([]int, len(i))
+	for j := range i {
+		ids[j] = i[j].ID
 	}
-	return ric
-}
-
-// SetIngredient sets the "ingredient" edge to the Ingredient entity.
-func (ric *RecipeIngredientCreate) SetIngredient(i *Ingredient) *RecipeIngredientCreate {
-	return ric.SetIngredientID(i.ID)
+	return ric.AddIngredientIDs(ids...)
 }
 
 // Mutation returns the RecipeIngredientMutation object of the builder.
@@ -154,10 +150,10 @@ func (ric *RecipeIngredientCreate) createSpec() (*RecipeIngredient, *sqlgraph.Cr
 	}
 	if nodes := ric.mutation.IngredientIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2O,
+			Rel:     sqlgraph.M2M,
 			Inverse: false,
 			Table:   recipeingredient.IngredientTable,
-			Columns: []string{recipeingredient.IngredientColumn},
+			Columns: recipeingredient.IngredientPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(ingredient.FieldID, field.TypeInt),

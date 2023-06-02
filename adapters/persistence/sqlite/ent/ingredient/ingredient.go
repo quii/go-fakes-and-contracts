@@ -29,13 +29,11 @@ const (
 	PantryInverseTable = "pantries"
 	// PantryColumn is the table column denoting the pantry relation/edge.
 	PantryColumn = "pantry_ingredient"
-	// RecipeingredientTable is the table that holds the recipeingredient relation/edge.
-	RecipeingredientTable = "ingredients"
+	// RecipeingredientTable is the table that holds the recipeingredient relation/edge. The primary key declared below.
+	RecipeingredientTable = "recipe_ingredient_ingredient"
 	// RecipeingredientInverseTable is the table name for the RecipeIngredient entity.
 	// It exists in this package in order to avoid circular dependency with the "recipeingredient" package.
 	RecipeingredientInverseTable = "recipe_ingredients"
-	// RecipeingredientColumn is the table column denoting the recipeingredient relation/edge.
-	RecipeingredientColumn = "recipe_ingredient_ingredient"
 )
 
 // Columns holds all SQL columns for ingredient fields.
@@ -49,8 +47,13 @@ var Columns = []string{
 // table and are not defined as standalone fields in the schema.
 var ForeignKeys = []string{
 	"pantry_ingredient",
-	"recipe_ingredient_ingredient",
 }
+
+var (
+	// RecipeingredientPrimaryKey and RecipeingredientColumn2 are the table columns denoting the
+	// primary key for the recipeingredient relation (M2M).
+	RecipeingredientPrimaryKey = []string{"recipe_ingredient_id", "ingredient_id"}
+)
 
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {
@@ -97,10 +100,17 @@ func ByPantryField(field string, opts ...sql.OrderTermOption) OrderOption {
 	}
 }
 
-// ByRecipeingredientField orders the results by recipeingredient field.
-func ByRecipeingredientField(field string, opts ...sql.OrderTermOption) OrderOption {
+// ByRecipeingredientCount orders the results by recipeingredient count.
+func ByRecipeingredientCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newRecipeingredientStep(), sql.OrderByField(field, opts...))
+		sqlgraph.OrderByNeighborsCount(s, newRecipeingredientStep(), opts...)
+	}
+}
+
+// ByRecipeingredient orders the results by recipeingredient terms.
+func ByRecipeingredient(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newRecipeingredientStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
 func newPantryStep() *sqlgraph.Step {
@@ -114,6 +124,6 @@ func newRecipeingredientStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(RecipeingredientInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2O, true, RecipeingredientTable, RecipeingredientColumn),
+		sqlgraph.Edge(sqlgraph.M2M, true, RecipeingredientTable, RecipeingredientPrimaryKey...),
 	)
 }

@@ -16,10 +16,10 @@ Make a type
 Try and compile, it fails, implement interface, try running test, it'll fail, now implement it with SQL
 */
 
-func TestSQLiteIngredientStore(t *testing.T) {
+func TestSQLitePantry(t *testing.T) {
 	planner.PantryContract{
-		NewPantry: func() planner.CloseablePantry {
-			return sqlite.NewPantry()
+		NewPantry: func() planner.Pantry {
+			return sqlite.NewPantry(sqlite.NewSQLiteClient())
 		},
 	}.Test(t)
 }

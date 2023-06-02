@@ -4,6 +4,7 @@ package ent
 
 import (
 	"context"
+	"database/sql/driver"
 	"fmt"
 	"math"
 
@@ -98,7 +99,7 @@ func (iq *IngredientQuery) QueryRecipeingredient() *RecipeIngredientQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(ingredient.Table, ingredient.FieldID, selector),
 			sqlgraph.To(recipeingredient.Table, recipeingredient.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, true, ingredient.RecipeingredientTable, ingredient.RecipeingredientColumn),
+			sqlgraph.Edge(sqlgraph.M2M, true, ingredient.RecipeingredientTable, ingredient.RecipeingredientPrimaryKey...),
 		)
 		fromU = sqlgraph.SetNeighbors(iq.driver.Dialect(), step)
 		return fromU, nil
@@ -412,7 +413,7 @@ func (iq *IngredientQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*I
 			iq.withRecipeingredient != nil,
 		}
 	)
-	if iq.withPantry != nil || iq.withRecipeingredient != nil {
+	if iq.withPantry != nil {
 		withFKs = true
 	}
 	if withFKs {
@@ -443,8 +444,11 @@ func (iq *IngredientQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*I
 		}
 	}
 	if query := iq.withRecipeingredient; query != nil {
-		if err := iq.loadRecipeingredient(ctx, query, nodes, nil,
-			func(n *Ingredient, e *RecipeIngredient) { n.Edges.Recipeingredient = e }); err != nil {
+		if err := iq.loadRecipeingredient(ctx, query, nodes,
+			func(n *Ingredient) { n.Edges.Recipeingredient = []*RecipeIngredient{} },
+			func(n *Ingredient, e *RecipeIngredient) {
+				n.Edges.Recipeingredient = append(n.Edges.Recipeingredient, e)
+			}); err != nil {
 			return nil, err
 		}
 	}
@@ -484,33 +488,62 @@ func (iq *IngredientQuery) loadPantry(ctx context.Context, query *PantryQuery, n
 	return nil
 }
 func (iq *IngredientQuery) loadRecipeingredient(ctx context.Context, query *RecipeIngredientQuery, nodes []*Ingredient, init func(*Ingredient), assign func(*Ingredient, *RecipeIngredient)) error {
-	ids := make([]int, 0, len(nodes))
-	nodeids := make(map[int][]*Ingredient)
-	for i := range nodes {
-		if nodes[i].recipe_ingredient_ingredient == nil {
-			continue
+	edgeIDs := make([]driver.Value, len(nodes))
+	byID := make(map[int]*Ingredient)
+	nids := make(map[int]map[*Ingredient]struct{})
+	for i, node := range nodes {
+		edgeIDs[i] = node.ID
+		byID[node.ID] = node
+		if init != nil {
+			init(node)
 		}
-		fk := *nodes[i].recipe_ingredient_ingredient
-		if _, ok := nodeids[fk]; !ok {
-			ids = append(ids, fk)
-		}
-		nodeids[fk] = append(nodeids[fk], nodes[i])
 	}
-	if len(ids) == 0 {
-		return nil
+	query.Where(func(s *sql.Selector) {
+		joinT := sql.Table(ingredient.RecipeingredientTable)
+		s.Join(joinT).On(s.C(recipeingredient.FieldID), joinT.C(ingredient.RecipeingredientPrimaryKey[0]))
+		s.Where(sql.InValues(joinT.C(ingredient.RecipeingredientPrimaryKey[1]), edgeIDs...))
+		columns := s.SelectedColumns()
+		s.Select(joinT.C(ingredient.RecipeingredientPrimaryKey[1]))
+		s.AppendSelect(columns...)
+		s.SetDistinct(false)
+	})
+	if err := query.prepareQuery(ctx); err != nil {
+		return err
 	}
-	query.Where(recipeingredient.IDIn(ids...))
-	neighbors, err := query.All(ctx)
+	qr := QuerierFunc(func(ctx context.Context, q Query) (Value, error) {
+		return query.sqlAll(ctx, func(_ context.Context, spec *sqlgraph.QuerySpec) {
+			assign := spec.Assign
+			values := spec.ScanValues
+			spec.ScanValues = func(columns []string) ([]any, error) {
+				values, err := values(columns[1:])
+				if err != nil {
+					return nil, err
+				}
+				return append([]any{new(sql.NullInt64)}, values...), nil
+			}
+			spec.Assign = func(columns []string, values []any) error {
+				outValue := int(values[0].(*sql.NullInt64).Int64)
+				inValue := int(values[1].(*sql.NullInt64).Int64)
+				if nids[inValue] == nil {
+					nids[inValue] = map[*Ingredient]struct{}{byID[outValue]: {}}
+					return assign(columns[1:], values[1:])
+				}
+				nids[inValue][byID[outValue]] = struct{}{}
+				return nil
+			}
+		})
+	})
+	neighbors, err := withInterceptors[[]*RecipeIngredient](ctx, query, qr, query.inters)
 	if err != nil {
 		return err
 	}
 	for _, n := range neighbors {
-		nodes, ok := nodeids[n.ID]
+		nodes, ok := nids[n.ID]
 		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "recipe_ingredient_ingredient" returned %v`, n.ID)
+			return fmt.Errorf(`unexpected "recipeingredient" node returned %v`, n.ID)
 		}
-		for i := range nodes {
-			assign(nodes[i], n)
+		for kn := range nodes {
+			assign(kn, n)
 		}
 	}
 	return nil

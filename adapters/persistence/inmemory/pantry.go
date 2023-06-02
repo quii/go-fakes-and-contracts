@@ -13,7 +13,7 @@ func NewPantry() *Pantry {
 	return &Pantry{}
 }
 
-func (p *Pantry) GetIngredients(_ context.Context) ([]ingredients.Ingredient, error) {
+func (p *Pantry) GetIngredients(_ context.Context) (ingredients.Ingredients, error) {
 	return p.ingredients, nil
 }
 
@@ -26,7 +26,4 @@ func (p *Pantry) Store(_ context.Context, ingredients ...ingredients.Ingredient)
 		}
 	}
 	return nil
-}
-
-func (p *Pantry) Close() {
 }

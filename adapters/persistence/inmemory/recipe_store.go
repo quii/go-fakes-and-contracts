@@ -21,7 +21,3 @@ func (s *RecipeStore) AddRecipes(_ context.Context, r ...recipe.Recipe) error {
 	s.Recipes = append(s.Recipes, r...)
 	return nil
 }
-
-func (s *RecipeStore) Close() {
-
-}
