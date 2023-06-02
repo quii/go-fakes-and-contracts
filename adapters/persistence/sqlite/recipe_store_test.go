@@ -9,7 +9,7 @@ import (
 func TestRecipeStore(t *testing.T) {
 	planner.RecipeBookContract{
 		NewBook: func() planner.CloseableRecipeBook {
-			return sqlite.NewRecipeStore()
+			return sqlite.NewRecipeStore(sqlite.NewSQLiteClient())
 		},
 	}.Test(t)
 }

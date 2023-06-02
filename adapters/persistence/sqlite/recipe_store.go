@@ -13,7 +13,7 @@ type RecipeStore struct {
 	client *ent.Client
 }
 
-func NewRecipeStore() *RecipeStore {
+func NewSQLiteClient() *ent.Client {
 	client, err := ent.Open(dialect.SQLite, "file:ent?mode=memory&cache=shared&_fk=1")
 	//client, err := ent.Open(dialect.SQLite, "file.db?_fk=1")
 	if err != nil {
@@ -22,7 +22,13 @@ func NewRecipeStore() *RecipeStore {
 	if err := client.Schema.Create(context.Background()); err != nil {
 		log.Fatalf("failed creating schema resources: %v", err)
 	}
-	return &RecipeStore{client: client}
+	return client
+}
+
+func NewRecipeStore(client *ent.Client) *RecipeStore {
+	return &RecipeStore{
+		client: client,
+	}
 }
 
 func (r RecipeStore) GetRecipes(ctx context.Context) ([]recipe.Recipe, error) {
@@ -34,7 +40,6 @@ func (r RecipeStore) GetRecipes(ctx context.Context) ([]recipe.Recipe, error) {
 	for _, r := range all {
 
 		var ings []ingredients.Ingredient
-		log.Println("ingredients for", r.ID, r.Edges.Recipeingredient)
 		for _, recipeIngredient := range r.Edges.Recipeingredient {
 			first, err := recipeIngredient.QueryIngredient().First(ctx)
 			if err != nil {
@@ -61,14 +66,12 @@ func (r RecipeStore) AddRecipes(ctx context.Context, recipes ...recipe.Recipe) e
 	for _, newRecipe := range recipes {
 		var recipeIngredients []*ent.RecipeIngredient
 		for _, newIngredient := range newRecipe.Ingredients {
-			// create ingredient if it doesn't exist
-			id, err := r.client.Ingredient.Create().SetName(newIngredient.Name).OnConflict().DoNothing().ID(ctx)
+			savedIngredient, err := CreateIngredientIfNotExists(ctx, r.client, newIngredient)
 			if err != nil {
 				return err
 			}
-
 			ri, err := r.client.RecipeIngredient.Create().
-				SetIngredient(r.client.Ingredient.GetX(ctx, id)).
+				SetIngredient(savedIngredient).
 				SetQuantity(int(newIngredient.Quantity)).
 				Save(ctx)
 			if err != nil {

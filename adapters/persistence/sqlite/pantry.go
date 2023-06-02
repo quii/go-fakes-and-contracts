@@ -3,7 +3,6 @@ package sqlite
 import (
 	"context"
 	"entgo.io/ent/dialect"
-	"fmt"
 	"github.com/quii/go-fakes-and-contracts/adapters/persistence/sqlite/ent"
 	"github.com/quii/go-fakes-and-contracts/adapters/persistence/sqlite/ent/ingredient"
 	"github.com/quii/go-fakes-and-contracts/adapters/persistence/sqlite/ent/pantry"
@@ -47,15 +46,9 @@ func (i Pantry) GetIngredients(ctx context.Context) ([]ingredients.Ingredient, e
 func (i Pantry) Store(ctx context.Context, ingredients ...ingredients.Ingredient) error {
 	for _, newIngredient := range ingredients {
 		// create ingredient if it doesn't exist
-		err := i.client.Ingredient.Create().SetName(newIngredient.Name).OnConflict().DoNothing().Exec(ctx)
+		savedIngredient, err := CreateIngredientIfNotExists(ctx, i.client, newIngredient)
 		if err != nil {
-			return fmt.Errorf("failed to create ingredient: %w", err)
-		}
-
-		// get it out the db again (kinda sucks, but not sure how to do this better with ent)
-		savedIngredient, err := i.client.Ingredient.Query().Where(ingredient.Name(newIngredient.Name)).First(ctx)
-		if err != nil {
-			return fmt.Errorf("failed to find ingredient %q: %w", newIngredient.Name, err)
+			return err
 		}
 
 		// this sucks ass, im sure i've got the schema wrong for this to be needed
