@@ -4,7 +4,6 @@ import (
 	"context"
 	"entgo.io/ent/dialect"
 	"github.com/quii/go-fakes-and-contracts/adapters/persistence/sqlite/ent"
-	"github.com/quii/go-fakes-and-contracts/adapters/persistence/sqlite/ent/ingredient"
 	"github.com/quii/go-fakes-and-contracts/domain/ingredients"
 	"github.com/quii/go-fakes-and-contracts/domain/recipe"
 	"log"
@@ -63,19 +62,13 @@ func (r RecipeStore) AddRecipes(ctx context.Context, recipes ...recipe.Recipe) e
 		var recipeIngredients []*ent.RecipeIngredient
 		for _, newIngredient := range newRecipe.Ingredients {
 			// create ingredient if it doesn't exist
-			err := r.client.Ingredient.Create().SetName(newIngredient.Name).OnConflict().DoNothing().Exec(ctx)
-			if err != nil {
-				return err
-			}
-
-			// get it out the db again (kinda sucks, but not sure how to do this better with ent)
-			savedIngredient, err := r.client.Ingredient.Query().Where(ingredient.Name(newIngredient.Name)).First(ctx)
+			id, err := r.client.Ingredient.Create().SetName(newIngredient.Name).OnConflict().DoNothing().ID(ctx)
 			if err != nil {
 				return err
 			}
 
 			ri, err := r.client.RecipeIngredient.Create().
-				SetIngredient(savedIngredient).
+				SetIngredient(r.client.Ingredient.GetX(ctx, id)).
 				SetQuantity(int(newIngredient.Quantity)).
 				Save(ctx)
 			if err != nil {
