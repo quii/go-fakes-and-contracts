@@ -37,25 +37,30 @@ func (i Pantry) GetIngredients(ctx context.Context) (ingredients.Ingredients, er
 
 func (i Pantry) Store(ctx context.Context, ingredients ...ingredients.Ingredient) error {
 	for _, newIngredient := range ingredients {
-		// create ingredient if it doesn't exist
-		savedIngredient, err := CreateIngredientIfNotExists(ctx, i.client, newIngredient)
-		if err != nil {
+		if err := i.addOrIncrementIngredient(ctx, newIngredient); err != nil {
 			return err
 		}
+	}
+	return nil
+}
 
-		// this sucks ass, im sure i've got the schema wrong for this to be needed
-		pantryItem, err := i.client.Pantry.Query().Where(pantry.HasIngredientWith(ingredient.ID(savedIngredient.ID))).All(ctx)
-		if err != nil {
-			return err
-		}
-		if len(pantryItem) == 0 {
-			err = i.client.Pantry.Create().SetIngredientID(savedIngredient.ID).SetQuantity(int(newIngredient.Quantity)).Exec(ctx)
-			if err != nil {
-				return err
-			}
-			continue
-		}
-		err = pantryItem[0].Update().AddQuantity(int(newIngredient.Quantity)).Exec(ctx)
+func (i Pantry) addOrIncrementIngredient(ctx context.Context, newIngredient ingredients.Ingredient) error {
+	savedIngredient, err := CreateIngredientIfNotExists(ctx, i.client, newIngredient)
+	if err != nil {
+		return err
+	}
+
+	err = i.client.Pantry.Create().
+		SetIngredientID(savedIngredient.ID).
+		SetQuantity(int(newIngredient.Quantity)).
+		Exec(ctx)
+
+	if ent.IsConstraintError(err) {
+		err = i.client.Pantry.Update().
+			Where(pantry.HasIngredientWith(ingredient.ID(savedIngredient.ID))).
+			AddQuantity(int(newIngredient.Quantity)).
+			Exec(ctx)
+
 		if err != nil {
 			return err
 		}
