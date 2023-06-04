@@ -25,3 +25,14 @@ type Recipe struct {
 	Ingredients []ingredients.Ingredient
 	Description string
 }
+
+type Recipes []Recipe
+
+func (r Recipes) FindByName(name string) (Recipe, bool) {
+	for _, recipe := range r {
+		if recipe.Name == name {
+			return recipe, true
+		}
+	}
+	return Recipe{}, false
+}

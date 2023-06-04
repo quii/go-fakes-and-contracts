@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/quii/go-fakes-and-contracts/domain/ingredients"
 	"github.com/quii/go-fakes-and-contracts/domain/recipe"
+	"time"
 )
 
 type Planner struct {
@@ -15,7 +16,15 @@ func New(recipes RecipeBook, ingredientStore Pantry) *Planner {
 	return &Planner{recipeBook: recipes, pantry: ingredientStore}
 }
 
-func (p Planner) SuggestRecipes(ctx context.Context) ([]recipe.Recipe, error) {
+func (p Planner) Schedule(ctx context.Context, r recipe.Recipe, date time.Time) error {
+	// record recipe in calendar
+
+	// remove ingredients used from pantry
+
+	return nil
+}
+
+func (p Planner) SuggestRecipes(ctx context.Context) (recipe.Recipes, error) {
 	availableIngredients, err := p.pantry.GetIngredients(ctx)
 	if err != nil {
 		return nil, err

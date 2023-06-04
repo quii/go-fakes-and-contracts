@@ -52,77 +52,85 @@ type RecipeMatcherTest struct {
 }
 
 func (r RecipeMatcherTest) Test(t *testing.T) {
-	t.Run("if we have no ingredients we can't make anything", func(t *testing.T) {
-		store := r.NewPantry()
+	t.Run("planning meals", func(t *testing.T) {
 
-		recipeBook := r.NewRecipeBook()
-		assert.NoError(t, recipeBook.AddRecipes(context.Background(), randomRecipe(), randomRecipe()))
+		t.Run("happy path, have ingredients for a recipe", func(t *testing.T) {
+			ctx := context.Background()
+			lasagna := randomRecipe()
 
-		assertAvailableRecipes(t, store, recipeBook, []recipe.Recipe{})
+			store := r.NewPantry()
+			recipeBook := r.NewRecipeBook()
+
+			assert.NoError(t, recipeBook.AddRecipes(ctx, lasagna))
+			assert.NoError(t, store.Store(ctx, lasagna.Ingredients...))
+
+			planner := planner.New(recipeBook, store)
+			recipes, err := planner.SuggestRecipes(ctx)
+			assert.NoError(t, err)
+			assert.Equal(t, []recipe.Recipe{lasagna}, recipes)
+		})
+
 	})
 
-	t.Run("if we have the ingredients for a recipe we can make it", func(t *testing.T) {
-		store := r.NewPantry()
-		recipeBook := r.NewRecipeBook()
-		bananaBread := randomRecipe()
+	t.Run("suggesting recipes", func(t *testing.T) {
 
-		assert.NoError(t, recipeBook.AddRecipes(context.Background(), bananaBread, randomRecipe()))
+		t.Run("if don't have the ingredients for a meal, we cant make it", func(t *testing.T) {
+			ctx := context.Background()
+			store := r.NewPantry()
+			recipeBook := r.NewRecipeBook()
+			planner := planner.New(recipeBook, store)
 
-		assert.NoError(t, store.Store(
-			context.Background(),
-			bananaBread.Ingredients...,
-		))
-		assertAvailableRecipes(t, store, recipeBook, []recipe.Recipe{bananaBread})
+			pie := randomRecipe()
+			assert.NoError(t, recipeBook.AddRecipes(ctx, pie))
+
+			recipes, err := planner.SuggestRecipes(ctx)
+			assert.NoError(t, err)
+			assertDoesntHaveRecipe(t, recipes, pie)
+		})
+
+		t.Run("if we have the ingredients for a recipe we can make it", func(t *testing.T) {
+			ctx := context.Background()
+			store := r.NewPantry()
+			recipeBook := r.NewRecipeBook()
+			planner := planner.New(recipeBook, store)
+
+			bananaBread := randomRecipe()
+			aRecipeWeWontHaveIngredientsFor := randomRecipe()
+			assert.NoError(t, recipeBook.AddRecipes(ctx, bananaBread, aRecipeWeWontHaveIngredientsFor))
+
+			assert.NoError(t, store.Store(
+				ctx,
+				bananaBread.Ingredients...,
+			))
+
+			recipes, err := planner.SuggestRecipes(ctx)
+			assert.NoError(t, err)
+			assertHasRecipe(t, recipes, bananaBread)
+			assertDoesntHaveRecipe(t, recipes, aRecipeWeWontHaveIngredientsFor)
+		})
+
+		t.Run("if we have ingredients for 2 recipes, we can make both", func(t *testing.T) {
+			ctx := context.Background()
+			store := r.NewPantry()
+			recipeBook := r.NewRecipeBook()
+			planner := planner.New(recipeBook, store)
+
+			bananaBread := randomRecipe()
+			bananaMilkshake := randomRecipe()
+
+			assert.NoError(t, recipeBook.AddRecipes(ctx, bananaBread, bananaMilkshake))
+
+			assert.NoError(t, store.Store(
+				ctx,
+				append(bananaBread.Ingredients, bananaMilkshake.Ingredients...)...,
+			))
+
+			recipes, err := planner.SuggestRecipes(ctx)
+			assert.NoError(t, err)
+			assertHasRecipe(t, recipes, bananaBread)
+			assertHasRecipe(t, recipes, bananaMilkshake)
+		})
 	})
-
-	t.Run("if we have ingredients for 2 recipes, we can make both", func(t *testing.T) {
-		store := r.NewPantry()
-		recipeBook := r.NewRecipeBook()
-		bananaBread := randomRecipe()
-		bananaMilkshake := randomRecipe()
-
-		assert.NoError(t, recipeBook.AddRecipes(context.Background(), bananaBread, bananaMilkshake))
-
-		assert.NoError(t, store.Store(
-			context.Background(),
-			append(bananaBread.Ingredients, bananaMilkshake.Ingredients...)...,
-		))
-		assertAvailableRecipes(t, store, recipeBook, []recipe.Recipe{bananaMilkshake, bananaBread})
-	})
-
-}
-
-func assertAvailableRecipes(
-	t *testing.T,
-	ingredientStore planner.Pantry,
-	recipeStore planner.RecipeBook,
-	expectedRecipes []recipe.Recipe,
-) {
-	t.Helper()
-	suggestions, _ := planner.New(recipeStore, ingredientStore).SuggestRecipes(context.Background())
-
-	if len(expectedRecipes) == 0 {
-		assert.Equal(t, 0, len(suggestions))
-		return
-	}
-
-	// create a map to count occurrences of each recipe in the suggestions
-	suggestionCounts := make(map[string]int)
-	for _, suggestion := range suggestions {
-		suggestionCounts[suggestion.Name]++
-	}
-
-	// check that the counts of the expected recipes match the actual counts in the suggestions
-	for _, expectedRecipe := range expectedRecipes {
-		actualCount, ok := suggestionCounts[expectedRecipe.Name]
-		if !ok {
-			t.Errorf("expected recipe %s not found in suggestions", expectedRecipe.Name)
-			continue
-		}
-		if actualCount != 1 {
-			t.Errorf("expected recipe %s to appear once in suggestions, but found %d occurrences", expectedRecipe.Name, actualCount)
-		}
-	}
 }
 
 func randomRecipe() recipe.Recipe {
@@ -145,4 +153,16 @@ func random3ingredients() []ingredients.Ingredient {
 		randomIngredient(),
 		randomIngredient(),
 	}
+}
+
+func assertHasRecipe(t *testing.T, recipes recipe.Recipes, expected recipe.Recipe) {
+	t.Helper()
+	_, found := recipes.FindByName(expected.Name)
+	assert.True(t, found)
+}
+
+func assertDoesntHaveRecipe(t *testing.T, recipes recipe.Recipes, expected recipe.Recipe) {
+	t.Helper()
+	_, found := recipes.FindByName(expected.Name)
+	assert.False(t, found)
 }
