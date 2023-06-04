@@ -19,42 +19,37 @@ type PantryContract struct {
 
 func (s PantryContract) Test(t *testing.T) {
 	t.Run("it returns what is put in", func(t *testing.T) {
-		ctx := context.Background()
-		store := s.NewPantry()
+		var (
+			ctx             = context.Background()
+			someIngredients = []ingredients.Ingredient{
+				{Name: "Bananas", Quantity: 2},
+				{Name: "Flour", Quantity: 1},
+				{Name: "Eggs", Quantity: 2},
+			}
+			sut = s.NewPantry()
+		)
+		assert.NoError(t, sut.Store(ctx, someIngredients...))
 
-		want := []ingredients.Ingredient{
-			{Name: "Bananas", Quantity: 2},
-			{Name: "Flour", Quantity: 1},
-			{Name: "Eggs", Quantity: 2},
-		}
-
-		err := store.Store(ctx, want...)
+		storedIngredients, err := sut.GetIngredients(ctx)
 		assert.NoError(t, err)
-
-		got, err := store.GetIngredients(ctx)
-		assert.NoError(t, err)
-		assert.Equal(t, got, want)
+		assert.Equal(t, storedIngredients, someIngredients)
 	})
 
 	t.Run("it adds to the quantity of ingredients", func(t *testing.T) {
-		ctx := context.Background()
-		pantry := s.NewPantry()
+		var (
+			ctx    = context.Background()
+			orange = ingredients.Ingredient{
+				Name:     "Orange",
+				Quantity: 1,
+			}
+			sut = s.NewPantry()
+		)
+		assert.NoError(t, sut.Store(ctx, orange))
+		assert.NoError(t, sut.Store(ctx, orange))
+		assert.NoError(t, sut.Store(ctx, orange))
 
-		assert.NoError(t, pantry.Store(ctx, ingredients.Ingredient{
-			Name:     "Orange",
-			Quantity: 1,
-		}))
-		assert.NoError(t, pantry.Store(ctx, ingredients.Ingredient{
-			Name:     "Orange",
-			Quantity: 1,
-		}))
-		assert.NoError(t, pantry.Store(ctx, ingredients.Ingredient{
-			Name:     "Orange",
-			Quantity: 1,
-		}))
-
-		got, err := pantry.GetIngredients(ctx)
+		got, err := sut.GetIngredients(ctx)
 		assert.NoError(t, err)
-		assert.Equal(t, got.NumberOf("Orange"), 3)
+		assert.Equal(t, got.NumberOf(orange.Name), 3)
 	})
 }

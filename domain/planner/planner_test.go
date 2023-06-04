@@ -7,7 +7,7 @@ import (
 	"github.com/quii/go-fakes-and-contracts/adapters/persistence/inmemory"
 	"github.com/quii/go-fakes-and-contracts/adapters/persistence/sqlite"
 	"github.com/quii/go-fakes-and-contracts/domain/ingredients"
-	"github.com/quii/go-fakes-and-contracts/domain/planner"
+	planner "github.com/quii/go-fakes-and-contracts/domain/planner"
 	"github.com/quii/go-fakes-and-contracts/domain/recipe"
 	"math/rand"
 	"testing"
@@ -54,40 +54,38 @@ type RecipeMatcherTest struct {
 func (r RecipeMatcherTest) Test(t *testing.T) {
 	t.Run("planning meals", func(t *testing.T) {
 
-		t.Run("happy path, have ingredients for a recipe", func(t *testing.T) {
-			ctx := context.Background()
-			lasagna := randomRecipe()
-
-			recipeBook, store, teardown := r.CreateDependencies()
+		t.Run("happy path, have ingredients for a recipe, schedule it, update pantry", func(t *testing.T) {
+			var (
+				ctx                          = context.Background()
+				lasagna                      = randomRecipe()
+				recipeBook, pantry, teardown = r.CreateDependencies()
+				sut                          = planner.New(recipeBook, pantry)
+			)
 			t.Cleanup(teardown)
 
 			assert.NoError(t, recipeBook.AddRecipes(ctx, lasagna))
-			assert.NoError(t, store.Store(ctx, lasagna.Ingredients...))
+			assert.NoError(t, pantry.Store(ctx, lasagna.Ingredients...))
 
-			sut := planner.New(recipeBook, store)
-			recipes, err := sut.SuggestRecipes(ctx)
-			assert.NoError(t, err)
-			assert.Equal(t, []recipe.Recipe{lasagna}, recipes)
-
-			assert.NoError(t, sut.ScheduleMeal(ctx, recipes[0], time.Now()))
-			remainingIngredients, err := store.GetIngredients(ctx)
+			assert.NoError(t, sut.ScheduleMeal(ctx, lasagna, time.Now()))
+			remainingIngredients, err := pantry.GetIngredients(ctx)
 			assert.NoError(t, err)
 			assert.Equal(t, []ingredients.Ingredient{}, remainingIngredients)
 		})
 
 		t.Run("returns a missing ingredients error if you try to schedule a meal without all the ingredients", func(t *testing.T) {
-			ctx := context.Background()
-			lasagna := randomRecipe()
-
-			recipeBook, store, teardown := r.CreateDependencies()
+			var (
+				ctx                         = context.Background()
+				lasagna                     = randomRecipe()
+				recipeBook, store, teardown = r.CreateDependencies()
+				sut                         = planner.New(recipeBook, store)
+			)
 			t.Cleanup(teardown)
 
 			assert.NoError(t, recipeBook.AddRecipes(ctx, lasagna))
 
-			sut := planner.New(recipeBook, store)
-
 			err := sut.ScheduleMeal(ctx, lasagna, time.Now())
 			assert.Error(t, err)
+
 			missingIngredientsErr, ok := err.(planner.ErrorMissingIngredients)
 			assert.True(t, ok)
 			assert.Equal(t, planner.ErrorMissingIngredients{
@@ -96,20 +94,22 @@ func (r RecipeMatcherTest) Test(t *testing.T) {
 		})
 
 		t.Run("returns the specific ingredients missing if you try to schedule a meal with some missing ingredients", func(t *testing.T) {
-			ctx := context.Background()
-			recipeBook, store, teardown := r.CreateDependencies()
+			var (
+				ctx                          = context.Background()
+				recipeBook, pantry, teardown = r.CreateDependencies()
+				lasagna                      = randomRecipe()
+				sut                          = planner.New(recipeBook, pantry)
+			)
 			t.Cleanup(teardown)
 
-			lasagna := randomRecipe()
 			assert.NoError(t, recipeBook.AddRecipes(ctx, lasagna))
 
 			missingIngredient, ingredientsWeHave := lasagna.Ingredients[0], lasagna.Ingredients[1:]
-			assert.NoError(t, store.Store(ctx, ingredientsWeHave...))
-
-			sut := planner.New(recipeBook, store)
+			assert.NoError(t, pantry.Store(ctx, ingredientsWeHave...))
 
 			err := sut.ScheduleMeal(ctx, lasagna, time.Now())
 			assert.Error(t, err)
+
 			missingIngredientsErr, ok := err.(planner.ErrorMissingIngredients)
 			assert.True(t, ok)
 			assert.Equal(t, planner.ErrorMissingIngredients{
@@ -122,60 +122,54 @@ func (r RecipeMatcherTest) Test(t *testing.T) {
 	t.Run("suggesting recipes", func(t *testing.T) {
 
 		t.Run("if don't have the ingredients for a meal, we cant make it", func(t *testing.T) {
-			ctx := context.Background()
-			recipeBook, store, teardown := r.CreateDependencies()
+			var (
+				ctx                          = context.Background()
+				pie                          = randomRecipe()
+				recipeBook, pantry, teardown = r.CreateDependencies()
+				sut                          = planner.New(recipeBook, pantry)
+			)
 			t.Cleanup(teardown)
 
-			planner := planner.New(recipeBook, store)
-
-			pie := randomRecipe()
 			assert.NoError(t, recipeBook.AddRecipes(ctx, pie))
 
-			recipes, err := planner.SuggestRecipes(ctx)
+			recipes, err := sut.SuggestRecipes(ctx)
 			assert.NoError(t, err)
 			assertDoesntHaveRecipe(t, recipes, pie)
 		})
 
 		t.Run("if we have the ingredients for a recipe we can make it", func(t *testing.T) {
-			ctx := context.Background()
-			recipeBook, store, teardown := r.CreateDependencies()
+			var (
+				ctx                             = context.Background()
+				bananaBread                     = randomRecipe()
+				aRecipeWeWontHaveIngredientsFor = randomRecipe()
+				recipeBook, pantry, teardown    = r.CreateDependencies()
+				sut                             = planner.New(recipeBook, pantry)
+			)
 			t.Cleanup(teardown)
 
-			planner := planner.New(recipeBook, store)
-
-			bananaBread := randomRecipe()
-			aRecipeWeWontHaveIngredientsFor := randomRecipe()
 			assert.NoError(t, recipeBook.AddRecipes(ctx, bananaBread, aRecipeWeWontHaveIngredientsFor))
+			assert.NoError(t, pantry.Store(ctx, bananaBread.Ingredients...))
 
-			assert.NoError(t, store.Store(
-				ctx,
-				bananaBread.Ingredients...,
-			))
-
-			recipes, err := planner.SuggestRecipes(ctx)
+			recipes, err := sut.SuggestRecipes(ctx)
 			assert.NoError(t, err)
 			assertHasRecipe(t, recipes, bananaBread)
 			assertDoesntHaveRecipe(t, recipes, aRecipeWeWontHaveIngredientsFor)
 		})
 
 		t.Run("if we have ingredients for 2 recipes, we can make both", func(t *testing.T) {
-			ctx := context.Background()
-			recipeBook, store, teardown := r.CreateDependencies()
+			var (
+				ctx                         = context.Background()
+				bananaBread                 = randomRecipe()
+				bananaMilkshake             = randomRecipe()
+				recipeBook, store, teardown = r.CreateDependencies()
+				sut                         = planner.New(recipeBook, store)
+			)
 			t.Cleanup(teardown)
 
-			planner := planner.New(recipeBook, store)
-
-			bananaBread := randomRecipe()
-			bananaMilkshake := randomRecipe()
-
 			assert.NoError(t, recipeBook.AddRecipes(ctx, bananaBread, bananaMilkshake))
+			assert.NoError(t, store.Store(ctx, append(bananaBread.Ingredients, bananaMilkshake.Ingredients...)...))
 
-			assert.NoError(t, store.Store(
-				ctx,
-				append(bananaBread.Ingredients, bananaMilkshake.Ingredients...)...,
-			))
-
-			recipes, err := planner.SuggestRecipes(ctx)
+			recipes, err := sut.SuggestRecipes(ctx)
 			assert.NoError(t, err)
 			assertHasRecipe(t, recipes, bananaBread)
 			assertHasRecipe(t, recipes, bananaMilkshake)
