@@ -8,7 +8,6 @@ import (
 	"github.com/quii/go-fakes-and-contracts/domain/ingredients"
 	planner "github.com/quii/go-fakes-and-contracts/domain/planner"
 	"github.com/quii/go-fakes-and-contracts/domain/planner/internal/plannertest"
-	"github.com/quii/go-fakes-and-contracts/domain/recipe"
 	"testing"
 	"time"
 )
@@ -131,7 +130,7 @@ func (r RecipeMatcherTest) Test(t *testing.T) {
 
 			recipes, err := sut.SuggestRecipes(ctx)
 			assert.NoError(t, err)
-			assertDoesntHaveRecipe(t, recipes, pie)
+			plannertest.AssertDoesntHaveRecipe(t, recipes, pie)
 		})
 
 		t.Run("if we have the ingredients for a recipe we can make it", func(t *testing.T) {
@@ -149,8 +148,8 @@ func (r RecipeMatcherTest) Test(t *testing.T) {
 
 			recipes, err := sut.SuggestRecipes(ctx)
 			assert.NoError(t, err)
-			assertHasRecipe(t, recipes, bananaBread)
-			assertDoesntHaveRecipe(t, recipes, aRecipeWeWontHaveIngredientsFor)
+			plannertest.AssertHasRecipe(t, recipes, bananaBread)
+			plannertest.AssertDoesntHaveRecipe(t, recipes, aRecipeWeWontHaveIngredientsFor)
 		})
 
 		t.Run("if we have ingredients for 2 recipes, we can make both", func(t *testing.T) {
@@ -169,20 +168,8 @@ func (r RecipeMatcherTest) Test(t *testing.T) {
 
 			recipes, err := sut.SuggestRecipes(ctx)
 			assert.NoError(t, err)
-			assertHasRecipe(t, recipes, bananaBread)
-			assertHasRecipe(t, recipes, bananaMilkshake)
+			plannertest.AssertHasRecipe(t, recipes, bananaBread)
+			plannertest.AssertHasRecipe(t, recipes, bananaMilkshake)
 		})
 	})
-}
-
-func assertHasRecipe(t *testing.T, recipes recipe.Recipes, expected recipe.Recipe) {
-	t.Helper()
-	_, found := recipes.FindByName(expected.Name)
-	assert.True(t, found)
-}
-
-func assertDoesntHaveRecipe(t *testing.T, recipes recipe.Recipes, expected recipe.Recipe) {
-	t.Helper()
-	_, found := recipes.FindByName(expected.Name)
-	assert.False(t, found)
 }

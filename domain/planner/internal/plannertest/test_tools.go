@@ -18,21 +18,21 @@ func RandomRecipes() []recipe.Recipe {
 func RandomRecipe() recipe.Recipe {
 	return recipe.Recipe{
 		Name:        uuid.New().String(),
-		Ingredients: random3ingredients(),
+		Ingredients: RandomIngredients(),
 	}
 }
 
-func randomIngredient() ingredients.Ingredient {
+func RandomIngredients() []ingredients.Ingredient {
+	return []ingredients.Ingredient{
+		RandomIngredient(),
+		RandomIngredient(),
+		RandomIngredient(),
+	}
+}
+
+func RandomIngredient() ingredients.Ingredient {
 	return ingredients.Ingredient{
 		Name:     uuid.New().String(),
 		Quantity: uint(rand.Intn(10)) + 1,
-	}
-}
-
-func random3ingredients() []ingredients.Ingredient {
-	return []ingredients.Ingredient{
-		randomIngredient(),
-		randomIngredient(),
-		randomIngredient(),
 	}
 }

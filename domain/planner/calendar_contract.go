@@ -30,6 +30,7 @@ func (c CalendarContract) Test(t *testing.T) {
 			assert.NoError(t, sut.ScheduleMeal(ctx, recipe, tomorrow))
 		}
 		got, err := sut.GetSchedule(ctx)
+
 		assert.NoError(t, err)
 		assert.Equal(t, someRecipes, got[tomorrow])
 	})
