@@ -18,11 +18,10 @@ func TestRecipeMatcher(t *testing.T) {
 	// for local, snappy integration test with a fake (which we can be confident is correct due to it conforming to the store contract)
 	t.Run("with in memory store", func(t *testing.T) {
 		RecipeMatcherTest{
-			NewRecipeBook: func() planner.RecipeBook {
-				return inmemory.NewRecipeStore()
-			},
-			NewPantry: func() planner.Pantry {
-				return inmemory.NewPantry()
+			CreateDependencies: func() (planner.RecipeBook, planner.Pantry, Cleanup) {
+				return inmemory.NewRecipeStore(), inmemory.NewPantry(), func() {
+					// nothing to clean up
+				}
 			},
 		}.Test(t)
 	})
@@ -30,27 +29,26 @@ func TestRecipeMatcher(t *testing.T) {
 	// we can run a broader integration test with a "real" db if we wish, using this contract approach
 	t.Run("with sqlite", func(t *testing.T) {
 		t.Skip("skipping sqlite test as it is not implemented yet")
-		client := sqlite.NewSQLiteClient()
-		t.Cleanup(func() {
-			assert.NoError(t, client.Close())
-		})
 
 		if !testing.Short() {
 			RecipeMatcherTest{
-				NewRecipeBook: func() planner.RecipeBook {
-					return sqlite.NewRecipeStore(client)
-				},
-				NewPantry: func() planner.Pantry {
-					return sqlite.NewPantry(client)
+				CreateDependencies: func() (planner.RecipeBook, planner.Pantry, Cleanup) {
+					client := sqlite.NewSQLiteClient()
+					return sqlite.NewRecipeStore(client), sqlite.NewPantry(client), func() {
+						if err := client.Close(); err != nil {
+							t.Error(err)
+						}
+					}
 				},
 			}.Test(t)
 		}
 	})
 }
 
+type Cleanup func()
+
 type RecipeMatcherTest struct {
-	NewPantry     func() planner.Pantry
-	NewRecipeBook func() planner.RecipeBook
+	CreateDependencies func() (planner.RecipeBook, planner.Pantry, Cleanup)
 }
 
 func (r RecipeMatcherTest) Test(t *testing.T) {
@@ -60,8 +58,8 @@ func (r RecipeMatcherTest) Test(t *testing.T) {
 			ctx := context.Background()
 			lasagna := randomRecipe()
 
-			store := r.NewPantry()
-			recipeBook := r.NewRecipeBook()
+			recipeBook, store, teardown := r.CreateDependencies()
+			t.Cleanup(teardown)
 
 			assert.NoError(t, recipeBook.AddRecipes(ctx, lasagna))
 			assert.NoError(t, store.Store(ctx, lasagna.Ingredients...))
@@ -78,26 +76,44 @@ func (r RecipeMatcherTest) Test(t *testing.T) {
 		})
 
 		t.Run("returns a missing ingredients error if you try to schedule a meal without all the ingredients", func(t *testing.T) {
-			t.Skip("skipping as it is not implemented yet")
 			ctx := context.Background()
 			lasagna := randomRecipe()
 
-			store := r.NewPantry()
-			recipeBook := r.NewRecipeBook()
+			recipeBook, store, teardown := r.CreateDependencies()
+			t.Cleanup(teardown)
 
 			assert.NoError(t, recipeBook.AddRecipes(ctx, lasagna))
 
 			sut := planner.New(recipeBook, store)
-			recipes, err := sut.SuggestRecipes(ctx)
-			assert.NoError(t, err)
-			assert.Equal(t, []recipe.Recipe{lasagna}, recipes)
 
-			err = sut.ScheduleMeal(ctx, recipes[0], time.Now())
+			err := sut.ScheduleMeal(ctx, lasagna, time.Now())
 			assert.Error(t, err)
 			missingIngredientsErr, ok := err.(planner.ErrorMissingIngredients)
 			assert.True(t, ok)
 			assert.Equal(t, planner.ErrorMissingIngredients{
 				MissingIngredients: lasagna.Ingredients,
+			}, missingIngredientsErr)
+		})
+
+		t.Run("returns the specific ingredients missing if you try to schedule a meal with some missing ingredients", func(t *testing.T) {
+			ctx := context.Background()
+			recipeBook, store, teardown := r.CreateDependencies()
+			t.Cleanup(teardown)
+
+			lasagna := randomRecipe()
+			assert.NoError(t, recipeBook.AddRecipes(ctx, lasagna))
+
+			missingIngredient, ingredientsWeHave := lasagna.Ingredients[0], lasagna.Ingredients[1:]
+			assert.NoError(t, store.Store(ctx, ingredientsWeHave...))
+
+			sut := planner.New(recipeBook, store)
+
+			err := sut.ScheduleMeal(ctx, lasagna, time.Now())
+			assert.Error(t, err)
+			missingIngredientsErr, ok := err.(planner.ErrorMissingIngredients)
+			assert.True(t, ok)
+			assert.Equal(t, planner.ErrorMissingIngredients{
+				MissingIngredients: []ingredients.Ingredient{missingIngredient},
 			}, missingIngredientsErr)
 		})
 
@@ -107,8 +123,9 @@ func (r RecipeMatcherTest) Test(t *testing.T) {
 
 		t.Run("if don't have the ingredients for a meal, we cant make it", func(t *testing.T) {
 			ctx := context.Background()
-			store := r.NewPantry()
-			recipeBook := r.NewRecipeBook()
+			recipeBook, store, teardown := r.CreateDependencies()
+			t.Cleanup(teardown)
+
 			planner := planner.New(recipeBook, store)
 
 			pie := randomRecipe()
@@ -121,8 +138,9 @@ func (r RecipeMatcherTest) Test(t *testing.T) {
 
 		t.Run("if we have the ingredients for a recipe we can make it", func(t *testing.T) {
 			ctx := context.Background()
-			store := r.NewPantry()
-			recipeBook := r.NewRecipeBook()
+			recipeBook, store, teardown := r.CreateDependencies()
+			t.Cleanup(teardown)
+
 			planner := planner.New(recipeBook, store)
 
 			bananaBread := randomRecipe()
@@ -142,8 +160,9 @@ func (r RecipeMatcherTest) Test(t *testing.T) {
 
 		t.Run("if we have ingredients for 2 recipes, we can make both", func(t *testing.T) {
 			ctx := context.Background()
-			store := r.NewPantry()
-			recipeBook := r.NewRecipeBook()
+			recipeBook, store, teardown := r.CreateDependencies()
+			t.Cleanup(teardown)
+
 			planner := planner.New(recipeBook, store)
 
 			bananaBread := randomRecipe()

@@ -33,6 +33,24 @@ func New(recipes RecipeBook, ingredientStore Pantry) *Planner {
 func (p Planner) ScheduleMeal(ctx context.Context, r recipe.Recipe, date time.Time) error {
 	// record recipe in calendar
 
+	// check ingredients are available in pantry
+	availableIngredients, err := p.pantry.GetIngredients(ctx)
+	if err != nil {
+		return err
+	}
+	if !haveIngredients(availableIngredients, r) {
+		// find missing ingredients
+		missingIngredients := ingredients.Ingredients{}
+		for _, ingredient := range r.Ingredients {
+			if !availableIngredients.Has(ingredient) {
+				missingIngredients = append(missingIngredients, ingredient)
+			}
+		}
+
+		return ErrorMissingIngredients{
+			MissingIngredients: missingIngredients,
+		}
+	}
 	// remove ingredients used from pantry
 	return p.pantry.Remove(ctx, r.Ingredients...)
 }
