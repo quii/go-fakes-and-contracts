@@ -2,16 +2,11 @@ package planner
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"github.com/quii/go-fakes-and-contracts/domain/ingredients"
 	"github.com/quii/go-fakes-and-contracts/domain/recipe"
 	"log"
 	"time"
-)
-
-var (
-	ErrAlreadyScheduled = errors.New("recipe already scheduled")
 )
 
 type ErrorMissingIngredients struct {

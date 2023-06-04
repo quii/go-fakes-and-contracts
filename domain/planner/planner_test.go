@@ -3,13 +3,12 @@ package planner_test
 import (
 	"context"
 	"github.com/alecthomas/assert/v2"
-	"github.com/google/uuid"
 	"github.com/quii/go-fakes-and-contracts/adapters/persistence/inmemory"
 	"github.com/quii/go-fakes-and-contracts/adapters/persistence/sqlite"
 	"github.com/quii/go-fakes-and-contracts/domain/ingredients"
 	planner "github.com/quii/go-fakes-and-contracts/domain/planner"
+	"github.com/quii/go-fakes-and-contracts/domain/planner/internal/plannertest"
 	"github.com/quii/go-fakes-and-contracts/domain/recipe"
-	"math/rand"
 	"testing"
 	"time"
 )
@@ -55,7 +54,7 @@ func (r RecipeMatcherTest) Test(t *testing.T) {
 		t.Run("happy path, have ingredients for a recipe, schedule it, update pantry", func(t *testing.T) {
 			var (
 				ctx                          = context.Background()
-				lasagna                      = randomRecipe()
+				lasagna                      = plannertest.RandomRecipe()
 				recipeBook, pantry, teardown = r.CreateDependencies()
 				sut                          = planner.New(recipeBook, pantry)
 			)
@@ -73,7 +72,7 @@ func (r RecipeMatcherTest) Test(t *testing.T) {
 		t.Run("returns a missing ingredients error if you try to schedule a meal without all the ingredients", func(t *testing.T) {
 			var (
 				ctx                         = context.Background()
-				lasagna                     = randomRecipe()
+				lasagna                     = plannertest.RandomRecipe()
 				recipeBook, store, teardown = r.CreateDependencies()
 				sut                         = planner.New(recipeBook, store)
 			)
@@ -95,7 +94,7 @@ func (r RecipeMatcherTest) Test(t *testing.T) {
 			var (
 				ctx                          = context.Background()
 				recipeBook, pantry, teardown = r.CreateDependencies()
-				lasagna                      = randomRecipe()
+				lasagna                      = plannertest.RandomRecipe()
 				sut                          = planner.New(recipeBook, pantry)
 			)
 			t.Cleanup(teardown)
@@ -122,7 +121,7 @@ func (r RecipeMatcherTest) Test(t *testing.T) {
 		t.Run("if don't have the ingredients for a meal, we cant make it", func(t *testing.T) {
 			var (
 				ctx                          = context.Background()
-				pie                          = randomRecipe()
+				pie                          = plannertest.RandomRecipe()
 				recipeBook, pantry, teardown = r.CreateDependencies()
 				sut                          = planner.New(recipeBook, pantry)
 			)
@@ -138,8 +137,8 @@ func (r RecipeMatcherTest) Test(t *testing.T) {
 		t.Run("if we have the ingredients for a recipe we can make it", func(t *testing.T) {
 			var (
 				ctx                             = context.Background()
-				bananaBread                     = randomRecipe()
-				aRecipeWeWontHaveIngredientsFor = randomRecipe()
+				bananaBread                     = plannertest.RandomRecipe()
+				aRecipeWeWontHaveIngredientsFor = plannertest.RandomRecipe()
 				recipeBook, pantry, teardown    = r.CreateDependencies()
 				sut                             = planner.New(recipeBook, pantry)
 			)
@@ -157,8 +156,8 @@ func (r RecipeMatcherTest) Test(t *testing.T) {
 		t.Run("if we have ingredients for 2 recipes, we can make both", func(t *testing.T) {
 			var (
 				ctx                         = context.Background()
-				bananaBread                 = randomRecipe()
-				bananaMilkshake             = randomRecipe()
+				bananaBread                 = plannertest.RandomRecipe()
+				bananaMilkshake             = plannertest.RandomRecipe()
 				recipeBook, store, teardown = r.CreateDependencies()
 				sut                         = planner.New(recipeBook, store)
 			)
@@ -174,28 +173,6 @@ func (r RecipeMatcherTest) Test(t *testing.T) {
 			assertHasRecipe(t, recipes, bananaMilkshake)
 		})
 	})
-}
-
-func randomRecipe() recipe.Recipe {
-	return recipe.Recipe{
-		Name:        uuid.New().String(),
-		Ingredients: random3ingredients(),
-	}
-}
-
-func randomIngredient() ingredients.Ingredient {
-	return ingredients.Ingredient{
-		Name:     uuid.New().String(),
-		Quantity: uint(rand.Intn(10)) + 1,
-	}
-}
-
-func random3ingredients() []ingredients.Ingredient {
-	return []ingredients.Ingredient{
-		randomIngredient(),
-		randomIngredient(),
-		randomIngredient(),
-	}
 }
 
 func assertHasRecipe(t *testing.T, recipes recipe.Recipes, expected recipe.Recipe) {

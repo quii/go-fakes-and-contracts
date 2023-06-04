@@ -48,7 +48,6 @@ func (i Pantry) Store(ctx context.Context, ingredients ...ingredients.Ingredient
 }
 
 func (i Pantry) Remove(ctx context.Context, toRemove ...ingredients.Ingredient) error {
-	// decrement the count for each ingredient
 	for _, ii := range toRemove {
 		err := i.client.Pantry.Update().
 			Where(pantry.HasIngredientWith(ingredient.Name(ii.Name))).
