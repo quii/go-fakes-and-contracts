@@ -28,8 +28,6 @@ func TestRecipeMatcher(t *testing.T) {
 
 	// we can run a broader integration test with a "real" db if we wish, using this contract approach
 	t.Run("with sqlite", func(t *testing.T) {
-		t.Skip("skipping sqlite test as it is not implemented yet")
-
 		if !testing.Short() {
 			RecipeMatcherTest{
 				CreateDependencies: func() (planner.RecipeBook, planner.Pantry, Cleanup) {
@@ -69,7 +67,7 @@ func (r RecipeMatcherTest) Test(t *testing.T) {
 			assert.NoError(t, sut.ScheduleMeal(ctx, lasagna, time.Now()))
 			remainingIngredients, err := pantry.GetIngredients(ctx)
 			assert.NoError(t, err)
-			assert.Equal(t, []ingredients.Ingredient{}, remainingIngredients)
+			assert.Equal(t, 0, len(remainingIngredients))
 		})
 
 		t.Run("returns a missing ingredients error if you try to schedule a meal without all the ingredients", func(t *testing.T) {
@@ -167,7 +165,8 @@ func (r RecipeMatcherTest) Test(t *testing.T) {
 			t.Cleanup(teardown)
 
 			assert.NoError(t, recipeBook.AddRecipes(ctx, bananaBread, bananaMilkshake))
-			assert.NoError(t, store.Store(ctx, append(bananaBread.Ingredients, bananaMilkshake.Ingredients...)...))
+			assert.NoError(t, store.Store(ctx, bananaBread.Ingredients...))
+			assert.NoError(t, store.Store(ctx, bananaMilkshake.Ingredients...))
 
 			recipes, err := sut.SuggestRecipes(ctx)
 			assert.NoError(t, err)
@@ -187,7 +186,7 @@ func randomRecipe() recipe.Recipe {
 func randomIngredient() ingredients.Ingredient {
 	return ingredients.Ingredient{
 		Name:     uuid.New().String(),
-		Quantity: uint(rand.Intn(10)),
+		Quantity: uint(rand.Intn(10)) + 1,
 	}
 }
 

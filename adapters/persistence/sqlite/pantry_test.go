@@ -17,9 +17,16 @@ Try and compile, it fails, implement interface, try running test, it'll fail, no
 */
 
 func TestSQLitePantry(t *testing.T) {
+	client := sqlite.NewSQLiteClient()
+	t.Cleanup(func() {
+		if err := client.Close(); err != nil {
+			t.Error(err)
+		}
+	})
+
 	planner.PantryContract{
 		NewPantry: func() planner.Pantry {
-			return sqlite.NewPantry(sqlite.NewSQLiteClient())
+			return sqlite.NewPantry(client)
 		},
 	}.Test(t)
 }

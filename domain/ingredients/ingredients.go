@@ -9,7 +9,7 @@ type Ingredients []Ingredient
 
 func (i Ingredients) Has(ingredient Ingredient) bool {
 	for _, pantryIngredient := range i {
-		if pantryIngredient.Name == ingredient.Name {
+		if pantryIngredient.Name == ingredient.Name && pantryIngredient.Quantity >= ingredient.Quantity {
 			return true
 		}
 	}

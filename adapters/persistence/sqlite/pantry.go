@@ -27,6 +27,9 @@ func (i Pantry) GetIngredients(ctx context.Context) (ingredients.Ingredients, er
 
 	var allIngredients ingredients.Ingredients
 	for _, pantryItem := range persistedPantry {
+		if pantryItem.Quantity == 0 {
+			continue
+		}
 		allIngredients = append(allIngredients, ingredients.Ingredient{
 			Name:     pantryItem.Edges.Ingredient.Name,
 			Quantity: uint(pantryItem.Quantity),
@@ -44,9 +47,19 @@ func (i Pantry) Store(ctx context.Context, ingredients ...ingredients.Ingredient
 	return nil
 }
 
-func (i Pantry) Remove(ctx context.Context, iings ...ingredients.Ingredient) error {
-	//TODO implement me
-	panic("implement me")
+func (i Pantry) Remove(ctx context.Context, toRemove ...ingredients.Ingredient) error {
+	// decrement the count for each ingredient
+	for _, ii := range toRemove {
+		err := i.client.Pantry.Update().
+			Where(pantry.HasIngredientWith(ingredient.Name(ii.Name))).
+			AddQuantity(-int(ii.Quantity)).
+			Exec(ctx)
+
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (i Pantry) addOrIncrementIngredient(ctx context.Context, newIngredient ingredients.Ingredient) error {

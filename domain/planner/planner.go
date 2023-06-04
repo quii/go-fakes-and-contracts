@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/quii/go-fakes-and-contracts/domain/ingredients"
 	"github.com/quii/go-fakes-and-contracts/domain/recipe"
+	"log"
 	"time"
 )
 
@@ -38,8 +39,8 @@ func (p Planner) ScheduleMeal(ctx context.Context, r recipe.Recipe, date time.Ti
 	if err != nil {
 		return err
 	}
+
 	if !haveIngredients(availableIngredients, r) {
-		// find missing ingredients
 		missingIngredients := ingredients.Ingredients{}
 		for _, ingredient := range r.Ingredients {
 			if !availableIngredients.Has(ingredient) {
@@ -52,6 +53,7 @@ func (p Planner) ScheduleMeal(ctx context.Context, r recipe.Recipe, date time.Ti
 		}
 	}
 	// remove ingredients used from pantry
+	log.Println("removing ingredients from pantry", r.Ingredients)
 	return p.pantry.Remove(ctx, r.Ingredients...)
 }
 

@@ -59,7 +59,6 @@ func (r RecipeStore) GetRecipes(ctx context.Context) ([]recipe.Recipe, error) {
 			Ingredients: ings,
 		})
 	}
-	log.Println("got recipes", recipes)
 	return recipes, nil
 }
 
