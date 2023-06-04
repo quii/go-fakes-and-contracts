@@ -9,6 +9,13 @@ type Pantry struct {
 	ingredients ingredients.Ingredients
 }
 
+func (p *Pantry) Remove(ctx context.Context, i ...ingredients.Ingredient) error {
+	for _, ingredient := range i {
+		p.ingredients.Remove(ingredient)
+	}
+	return nil
+}
+
 func NewPantry() *Pantry {
 	return &Pantry{}
 }

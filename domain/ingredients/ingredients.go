@@ -24,3 +24,15 @@ func (i Ingredients) NumberOf(ingredientName string) uint {
 	}
 	return 0
 }
+
+func (i *Ingredients) Remove(ingredient Ingredient) {
+	oldIngredients := *i
+	for idx, pantryIngredient := range oldIngredients {
+		if pantryIngredient.Name == ingredient.Name {
+			oldIngredients[idx].Quantity -= ingredient.Quantity
+			if oldIngredients[idx].Quantity == 0 {
+				*i = append(oldIngredients[:idx], oldIngredients[idx+1:]...)
+			}
+		}
+	}
+}

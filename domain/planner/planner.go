@@ -2,10 +2,24 @@ package planner
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"github.com/quii/go-fakes-and-contracts/domain/ingredients"
 	"github.com/quii/go-fakes-and-contracts/domain/recipe"
 	"time"
 )
+
+var (
+	ErrAlreadyScheduled = errors.New("recipe already scheduled")
+)
+
+type ErrorMissingIngredients struct {
+	MissingIngredients ingredients.Ingredients
+}
+
+func (e ErrorMissingIngredients) Error() string {
+	return fmt.Sprintf("missing ingredients: %v", e.MissingIngredients)
+}
 
 type Planner struct {
 	recipeBook RecipeBook
@@ -16,12 +30,11 @@ func New(recipes RecipeBook, ingredientStore Pantry) *Planner {
 	return &Planner{recipeBook: recipes, pantry: ingredientStore}
 }
 
-func (p Planner) Schedule(ctx context.Context, r recipe.Recipe, date time.Time) error {
+func (p Planner) ScheduleMeal(ctx context.Context, r recipe.Recipe, date time.Time) error {
 	// record recipe in calendar
 
 	// remove ingredients used from pantry
-
-	return nil
+	return p.pantry.Remove(ctx, r.Ingredients...)
 }
 
 func (p Planner) SuggestRecipes(ctx context.Context) (recipe.Recipes, error) {

@@ -10,6 +10,7 @@ import (
 type Pantry interface {
 	GetIngredients(ctx context.Context) (ingredients.Ingredients, error)
 	Store(context.Context, ...ingredients.Ingredient) error
+	Remove(ctx context.Context, i ...ingredients.Ingredient) error
 }
 
 type PantryContract struct {

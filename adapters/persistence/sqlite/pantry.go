@@ -44,6 +44,11 @@ func (i Pantry) Store(ctx context.Context, ingredients ...ingredients.Ingredient
 	return nil
 }
 
+func (i Pantry) Remove(ctx context.Context, iings ...ingredients.Ingredient) error {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (i Pantry) addOrIncrementIngredient(ctx context.Context, newIngredient ingredients.Ingredient) error {
 	savedIngredient, err := CreateIngredientIfNotExists(ctx, i.client, newIngredient)
 	if err != nil {
