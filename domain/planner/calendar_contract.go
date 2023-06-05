@@ -2,7 +2,7 @@ package planner
 
 import (
 	"context"
-	"github.com/alecthomas/assert/v2"
+	"github.com/quii/go-fakes-and-contracts/domain/planner/internal/expect"
 	"github.com/quii/go-fakes-and-contracts/domain/planner/internal/plannertest"
 	"github.com/quii/go-fakes-and-contracts/domain/recipe"
 	"testing"
@@ -26,12 +26,12 @@ func (c CalendarContract) Test(t *testing.T) {
 			tomorrow    = time.Now()
 			sut         = c.NewCalendar()
 		)
-		for _, recipe := range someRecipes {
-			assert.NoError(t, sut.ScheduleMeal(ctx, recipe, tomorrow))
+		for _, r := range someRecipes {
+			expect.NoErr(t, sut.ScheduleMeal(ctx, r, tomorrow))
 		}
 		got, err := sut.GetSchedule(ctx)
 
-		assert.NoError(t, err)
-		assert.Equal(t, someRecipes, got[tomorrow])
+		expect.NoErr(t, err)
+		expect.DeepEqual(t, got[tomorrow], someRecipes)
 	})
 }

@@ -2,8 +2,8 @@ package planner
 
 import (
 	"context"
-	"github.com/alecthomas/assert/v2"
 	"github.com/quii/go-fakes-and-contracts/domain/ingredients"
+	"github.com/quii/go-fakes-and-contracts/domain/planner/internal/expect"
 	"github.com/quii/go-fakes-and-contracts/domain/planner/internal/plannertest"
 	"testing"
 )
@@ -25,11 +25,11 @@ func (s PantryContract) Test(t *testing.T) {
 			someIngredients = plannertest.RandomIngredients()
 			sut             = s.NewPantry()
 		)
-		assert.NoError(t, sut.Store(ctx, someIngredients...))
+		expect.NoErr(t, sut.Store(ctx, someIngredients...))
 
 		storedIngredients, err := sut.GetIngredients(ctx)
-		assert.NoError(t, err)
-		assert.Equal(t, storedIngredients, someIngredients)
+		expect.NoErr(t, err)
+		expect.SliceEqual(t, storedIngredients, someIngredients)
 	})
 
 	t.Run("it adds to the quantity of ingredients", func(t *testing.T) {
@@ -40,13 +40,13 @@ func (s PantryContract) Test(t *testing.T) {
 		)
 		orange.Quantity = 1
 
-		assert.NoError(t, sut.Store(ctx, orange))
-		assert.NoError(t, sut.Store(ctx, orange))
-		assert.NoError(t, sut.Store(ctx, orange))
+		expect.NoErr(t, sut.Store(ctx, orange))
+		expect.NoErr(t, sut.Store(ctx, orange))
+		expect.NoErr(t, sut.Store(ctx, orange))
 
 		got, err := sut.GetIngredients(ctx)
-		assert.NoError(t, err)
-		assert.Equal(t, got.NumberOf(orange.Name), 3)
+		expect.NoErr(t, err)
+		expect.Equal(t, got.NumberOf(orange.Name), 3)
 	})
 
 	t.Run("it removes quantities of ingredients", func(t *testing.T) {
@@ -57,15 +57,15 @@ func (s PantryContract) Test(t *testing.T) {
 		)
 		apple.Quantity = 1
 
-		assert.NoError(t, sut.Store(ctx, apple))
-		assert.NoError(t, sut.Store(ctx, apple))
-		assert.NoError(t, sut.Store(ctx, apple))
+		expect.NoErr(t, sut.Store(ctx, apple))
+		expect.NoErr(t, sut.Store(ctx, apple))
+		expect.NoErr(t, sut.Store(ctx, apple))
 
-		assert.NoError(t, sut.Remove(ctx, apple))
+		expect.NoErr(t, sut.Remove(ctx, apple))
 
 		got, err := sut.GetIngredients(ctx)
-		assert.NoError(t, err)
-		assert.Equal(t, got.NumberOf(apple.Name), 2)
+		expect.NoErr(t, err)
+		expect.Equal(t, got.NumberOf(apple.Name), 2)
 	})
 
 	t.Run("if you run out of an ingredient entirely, it is removed from the pantry", func(t *testing.T) {
@@ -75,11 +75,11 @@ func (s PantryContract) Test(t *testing.T) {
 			sut    = s.NewPantry()
 		)
 
-		assert.NoError(t, sut.Store(ctx, banana))
-		assert.NoError(t, sut.Remove(ctx, banana))
+		expect.NoErr(t, sut.Store(ctx, banana))
+		expect.NoErr(t, sut.Remove(ctx, banana))
 
 		got, err := sut.GetIngredients(ctx)
-		assert.NoError(t, err)
-		assert.Equal(t, got.NumberOf(banana.Name), 0)
+		expect.NoErr(t, err)
+		expect.Equal(t, got.NumberOf(banana.Name), 0)
 	})
 }

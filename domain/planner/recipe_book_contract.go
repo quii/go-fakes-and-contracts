@@ -2,8 +2,8 @@ package planner
 
 import (
 	"context"
-	"github.com/alecthomas/assert/v2"
 	"github.com/quii/go-fakes-and-contracts/domain/ingredients"
+	"github.com/quii/go-fakes-and-contracts/domain/planner/internal/expect"
 	"github.com/quii/go-fakes-and-contracts/domain/recipe"
 	"testing"
 )
@@ -37,9 +37,9 @@ func (r RecipeBookContract) Test(t *testing.T) {
 			}
 			sut = r.NewBook()
 		)
-		assert.NoError(t, sut.AddRecipes(ctx, someRecipes...))
+		expect.NoErr(t, sut.AddRecipes(ctx, someRecipes...))
 		got, err := sut.GetRecipes(ctx)
-		assert.NoError(t, err)
-		assert.Equal(t, someRecipes, got)
+		expect.NoErr(t, err)
+		expect.DeepEqual(t, got, someRecipes)
 	})
 }

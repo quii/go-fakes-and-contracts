@@ -2,11 +2,11 @@ package planner_test
 
 import (
 	"context"
-	"github.com/alecthomas/assert/v2"
 	"github.com/quii/go-fakes-and-contracts/adapters/persistence/inmemory"
 	"github.com/quii/go-fakes-and-contracts/adapters/persistence/sqlite"
 	"github.com/quii/go-fakes-and-contracts/domain/ingredients"
-	planner "github.com/quii/go-fakes-and-contracts/domain/planner"
+	"github.com/quii/go-fakes-and-contracts/domain/planner"
+	"github.com/quii/go-fakes-and-contracts/domain/planner/internal/expect"
 	"github.com/quii/go-fakes-and-contracts/domain/planner/internal/plannertest"
 	"testing"
 	"time"
@@ -59,13 +59,13 @@ func (r RecipeMatcherTest) Test(t *testing.T) {
 			)
 			t.Cleanup(teardown)
 
-			assert.NoError(t, recipeBook.AddRecipes(ctx, lasagna))
-			assert.NoError(t, pantry.Store(ctx, lasagna.Ingredients...))
+			expect.NoErr(t, recipeBook.AddRecipes(ctx, lasagna))
+			expect.NoErr(t, pantry.Store(ctx, lasagna.Ingredients...))
 
-			assert.NoError(t, sut.ScheduleMeal(ctx, lasagna, time.Now()))
+			expect.NoErr(t, sut.ScheduleMeal(ctx, lasagna, time.Now()))
 			remainingIngredients, err := pantry.GetIngredients(ctx)
-			assert.NoError(t, err)
-			assert.Equal(t, 0, len(remainingIngredients))
+			expect.NoErr(t, err)
+			expect.Equal(t, 0, len(remainingIngredients))
 		})
 
 		t.Run("returns a missing ingredients error if you try to schedule a meal without all the ingredients", func(t *testing.T) {
@@ -77,14 +77,14 @@ func (r RecipeMatcherTest) Test(t *testing.T) {
 			)
 			t.Cleanup(teardown)
 
-			assert.NoError(t, recipeBook.AddRecipes(ctx, lasagna))
+			expect.NoErr(t, recipeBook.AddRecipes(ctx, lasagna))
 
 			err := sut.ScheduleMeal(ctx, lasagna, time.Now())
-			assert.Error(t, err)
+			expect.Err(t, err)
 
 			missingIngredientsErr, ok := err.(planner.ErrorMissingIngredients)
-			assert.True(t, ok)
-			assert.Equal(t, planner.ErrorMissingIngredients{
+			expect.True(t, ok)
+			expect.DeepEqual(t, planner.ErrorMissingIngredients{
 				MissingIngredients: lasagna.Ingredients,
 			}, missingIngredientsErr)
 		})
@@ -98,17 +98,17 @@ func (r RecipeMatcherTest) Test(t *testing.T) {
 			)
 			t.Cleanup(teardown)
 
-			assert.NoError(t, recipeBook.AddRecipes(ctx, lasagna))
+			expect.NoErr(t, recipeBook.AddRecipes(ctx, lasagna))
 
 			missingIngredient, ingredientsWeHave := lasagna.Ingredients[0], lasagna.Ingredients[1:]
-			assert.NoError(t, pantry.Store(ctx, ingredientsWeHave...))
+			expect.NoErr(t, pantry.Store(ctx, ingredientsWeHave...))
 
 			err := sut.ScheduleMeal(ctx, lasagna, time.Now())
-			assert.Error(t, err)
+			expect.Err(t, err)
 
 			missingIngredientsErr, ok := err.(planner.ErrorMissingIngredients)
-			assert.True(t, ok)
-			assert.Equal(t, planner.ErrorMissingIngredients{
+			expect.True(t, ok)
+			expect.DeepEqual(t, planner.ErrorMissingIngredients{
 				MissingIngredients: []ingredients.Ingredient{missingIngredient},
 			}, missingIngredientsErr)
 		})
@@ -126,10 +126,10 @@ func (r RecipeMatcherTest) Test(t *testing.T) {
 			)
 			t.Cleanup(teardown)
 
-			assert.NoError(t, recipeBook.AddRecipes(ctx, pie))
+			expect.NoErr(t, recipeBook.AddRecipes(ctx, pie))
 
 			recipes, err := sut.SuggestRecipes(ctx)
-			assert.NoError(t, err)
+			expect.NoErr(t, err)
 			plannertest.AssertDoesntHaveRecipe(t, recipes, pie)
 		})
 
@@ -143,11 +143,11 @@ func (r RecipeMatcherTest) Test(t *testing.T) {
 			)
 			t.Cleanup(teardown)
 
-			assert.NoError(t, recipeBook.AddRecipes(ctx, bananaBread, aRecipeWeWontHaveIngredientsFor))
-			assert.NoError(t, pantry.Store(ctx, bananaBread.Ingredients...))
+			expect.NoErr(t, recipeBook.AddRecipes(ctx, bananaBread, aRecipeWeWontHaveIngredientsFor))
+			expect.NoErr(t, pantry.Store(ctx, bananaBread.Ingredients...))
 
 			recipes, err := sut.SuggestRecipes(ctx)
-			assert.NoError(t, err)
+			expect.NoErr(t, err)
 			plannertest.AssertHasRecipe(t, recipes, bananaBread)
 			plannertest.AssertDoesntHaveRecipe(t, recipes, aRecipeWeWontHaveIngredientsFor)
 		})
@@ -162,12 +162,12 @@ func (r RecipeMatcherTest) Test(t *testing.T) {
 			)
 			t.Cleanup(teardown)
 
-			assert.NoError(t, recipeBook.AddRecipes(ctx, bananaBread, bananaMilkshake))
-			assert.NoError(t, store.Store(ctx, bananaBread.Ingredients...))
-			assert.NoError(t, store.Store(ctx, bananaMilkshake.Ingredients...))
+			expect.NoErr(t, recipeBook.AddRecipes(ctx, bananaBread, bananaMilkshake))
+			expect.NoErr(t, store.Store(ctx, bananaBread.Ingredients...))
+			expect.NoErr(t, store.Store(ctx, bananaMilkshake.Ingredients...))
 
 			recipes, err := sut.SuggestRecipes(ctx)
-			assert.NoError(t, err)
+			expect.NoErr(t, err)
 			plannertest.AssertHasRecipe(t, recipes, bananaBread)
 			plannertest.AssertHasRecipe(t, recipes, bananaMilkshake)
 		})
