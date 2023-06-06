@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/quii/go-fakes-and-contracts/domain/ingredients"
 	"github.com/quii/go-fakes-and-contracts/domain/recipe"
-	"log"
 	"time"
 )
 
@@ -19,28 +18,17 @@ func New(recipes RecipeBook, ingredientStore Pantry) *Planner {
 }
 
 func (p Planner) ScheduleMeal(ctx context.Context, r recipe.Recipe, _ time.Time) error {
-	// record recipe in calendar
-
-	// check ingredients are available in pantry
 	availableIngredients, err := p.pantry.GetIngredients(ctx)
 	if err != nil {
 		return err
 	}
 
-	if !haveIngredients(availableIngredients, r) {
-		missingIngredients := ingredients.Ingredients{}
-		for _, ingredient := range r.Ingredients {
-			if !availableIngredients.Has(ingredient) {
-				missingIngredients = append(missingIngredients, ingredient)
-			}
-		}
-
+	if hasIngredients, missing := haveIngredients(availableIngredients, r); !hasIngredients {
 		return ErrorMissingIngredients{
-			MissingIngredients: missingIngredients,
+			MissingIngredients: missing,
 		}
 	}
-	// remove ingredients used from pantry
-	log.Println("removing ingredients from pantry", r.Ingredients)
+
 	return p.pantry.Remove(ctx, r.Ingredients...)
 }
 
@@ -57,20 +45,24 @@ func (p Planner) SuggestRecipes(ctx context.Context) (recipe.Recipes, error) {
 
 	var suggestions []recipe.Recipe
 	for _, r := range recipes {
-		if haveIngredients(availableIngredients, r) {
+		if hasIngredients, _ := haveIngredients(availableIngredients, r); hasIngredients {
 			suggestions = append(suggestions, r)
 		}
 	}
 	return suggestions, nil
 }
 
-func haveIngredients(availableIngredients ingredients.Ingredients, recipe recipe.Recipe) bool {
+// returns slice of missing ingredients
+func haveIngredients(availableIngredients ingredients.Ingredients, recipe recipe.Recipe) (hasIngredients bool, missing ingredients.Ingredients) {
 	for _, ingredient := range recipe.Ingredients {
 		if !availableIngredients.Has(ingredient) {
-			return false
+			missing = append(missing, ingredient)
 		}
 	}
-	return true
+	if len(missing) > 0 {
+		return false, missing
+	}
+	return true, nil
 }
 
 type ErrorMissingIngredients struct {
