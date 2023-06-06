@@ -2,28 +2,14 @@ package sqlite
 
 import (
 	"context"
-	"entgo.io/ent/dialect"
 	"fmt"
 	"github.com/quii/go-fakes-and-contracts/adapters/persistence/sqlite/ent"
 	"github.com/quii/go-fakes-and-contracts/domain/ingredients"
 	"github.com/quii/go-fakes-and-contracts/domain/recipe"
-	"log"
 )
 
 type RecipeStore struct {
 	client *ent.Client
-}
-
-func NewSQLiteClient() *ent.Client {
-	client, err := ent.Open(dialect.SQLite, "file:ent?mode=memory&cache=shared&_fk=1")
-	//client, err := ent.Open(dialect.SQLite, "file.db?_fk=1")
-	if err != nil {
-		log.Fatalf("failed opening connection to sqlite: %v", err)
-	}
-	if err := client.Schema.Create(context.Background()); err != nil {
-		log.Fatalf("failed creating schema resources: %v", err)
-	}
-	return client
 }
 
 func NewRecipeStore(client *ent.Client) *RecipeStore {
@@ -79,7 +65,6 @@ func (r RecipeStore) AddRecipes(ctx context.Context, recipes ...recipe.Recipe) e
 			recipeIngredients = append(recipeIngredients, ri)
 		}
 
-		// create recipe
 		err := r.client.Recipe.Create().
 			SetName(newRecipe.Name).
 			AddRecipeingredient(recipeIngredients...).

@@ -9,14 +9,6 @@ import (
 	"time"
 )
 
-type ErrorMissingIngredients struct {
-	MissingIngredients ingredients.Ingredients
-}
-
-func (e ErrorMissingIngredients) Error() string {
-	return fmt.Sprintf("missing ingredients: %v", e.MissingIngredients)
-}
-
 type Planner struct {
 	recipeBook RecipeBook
 	pantry     Pantry
@@ -26,7 +18,7 @@ func New(recipes RecipeBook, ingredientStore Pantry) *Planner {
 	return &Planner{recipeBook: recipes, pantry: ingredientStore}
 }
 
-func (p Planner) ScheduleMeal(ctx context.Context, r recipe.Recipe, date time.Time) error {
+func (p Planner) ScheduleMeal(ctx context.Context, r recipe.Recipe, _ time.Time) error {
 	// record recipe in calendar
 
 	// check ingredients are available in pantry
@@ -79,4 +71,12 @@ func haveIngredients(availableIngredients ingredients.Ingredients, recipe recipe
 		}
 	}
 	return true
+}
+
+type ErrorMissingIngredients struct {
+	MissingIngredients ingredients.Ingredients
+}
+
+func (e ErrorMissingIngredients) Error() string {
+	return fmt.Sprintf("missing ingredients: %v", e.MissingIngredients)
 }

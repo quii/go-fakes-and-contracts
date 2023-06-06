@@ -7,8 +7,8 @@ type Ingredient struct {
 
 type Ingredients []Ingredient
 
-func (i Ingredients) Has(ingredient Ingredient) bool {
-	for _, pantryIngredient := range i {
+func (i *Ingredients) Has(ingredient Ingredient) bool {
+	for _, pantryIngredient := range *i {
 		if pantryIngredient.Name == ingredient.Name && pantryIngredient.Quantity >= ingredient.Quantity {
 			return true
 		}
@@ -16,8 +16,8 @@ func (i Ingredients) Has(ingredient Ingredient) bool {
 	return false
 }
 
-func (i Ingredients) NumberOf(ingredientName string) uint {
-	for _, pantryIngredient := range i {
+func (i *Ingredients) NumberOf(ingredientName string) uint {
+	for _, pantryIngredient := range *i {
 		if pantryIngredient.Name == ingredientName {
 			return pantryIngredient.Quantity
 		}
