@@ -2,8 +2,8 @@ package planner_test
 
 import (
 	"context"
-	"github.com/quii/go-fakes-and-contracts/adapters/persistence/inmemory"
-	"github.com/quii/go-fakes-and-contracts/adapters/persistence/sqlite"
+	inmemory2 "github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/inmemory"
+	sqlite2 "github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite"
 	"github.com/quii/go-fakes-and-contracts/domain/ingredients"
 	"github.com/quii/go-fakes-and-contracts/domain/planner"
 	"github.com/quii/go-fakes-and-contracts/domain/planner/internal/expect"
@@ -17,7 +17,7 @@ func TestRecipeMatcher(t *testing.T) {
 	t.Run("with in memory store", func(t *testing.T) {
 		RecipeMatcherTest{
 			CreateDependencies: func() (planner.RecipeBook, planner.Pantry, Cleanup) {
-				return inmemory.NewRecipeStore(), inmemory.NewPantry(), func() {
+				return inmemory2.NewRecipeStore(), inmemory2.NewPantry(), func() {
 					// nothing to clean up
 				}
 			},
@@ -29,8 +29,8 @@ func TestRecipeMatcher(t *testing.T) {
 		if !testing.Short() {
 			RecipeMatcherTest{
 				CreateDependencies: func() (planner.RecipeBook, planner.Pantry, Cleanup) {
-					client := sqlite.NewSQLiteClient()
-					return sqlite.NewRecipeStore(client), sqlite.NewPantry(client), func() {
+					client := sqlite2.NewSQLiteClient()
+					return sqlite2.NewRecipeStore(client), sqlite2.NewPantry(client), func() {
 						if err := client.Close(); err != nil {
 							t.Error(err)
 						}
