@@ -3,8 +3,8 @@ package planner
 import (
 	"context"
 	"github.com/quii/go-fakes-and-contracts/domain/ingredients"
-	"github.com/quii/go-fakes-and-contracts/domain/planner/internal/expect"
-	"github.com/quii/go-fakes-and-contracts/domain/planner/internal/plannertest"
+	"github.com/quii/go-fakes-and-contracts/domain/planner/expect"
+	"github.com/quii/go-fakes-and-contracts/domain/planner/plannertest"
 	"testing"
 )
 

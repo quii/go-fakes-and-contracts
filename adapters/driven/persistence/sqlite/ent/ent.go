@@ -6,16 +6,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite/ent/ingredient"
-	"github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite/ent/pantry"
-	"github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite/ent/recipe"
-	"github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite/ent/recipeingredient"
 	"reflect"
 	"sync"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite/ent/ingredient"
+	"github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite/ent/pantry"
+	"github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite/ent/recipe"
+	"github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite/ent/recipeingredient"
 )
 
 // ent aliases to avoid import conflicts in user's code.

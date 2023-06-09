@@ -41,6 +41,12 @@ func NotEqual[T comparable](t *testing.T, got, want T) {
 	}
 }
 
+func Len[T any](t *testing.T, got []T, want int) {
+	if len(got) != want {
+		t.Errorf("got length %d, want %d", len(got), want)
+	}
+}
+
 func True(t *testing.T, got bool) {
 	t.Helper()
 	if !got {

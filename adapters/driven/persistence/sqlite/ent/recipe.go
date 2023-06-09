@@ -4,11 +4,11 @@ package ent
 
 import (
 	"fmt"
-	"github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite/ent/recipe"
 	"strings"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
+	"github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite/ent/recipe"
 )
 
 // Recipe is the model entity for the Recipe schema.

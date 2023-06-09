@@ -6,17 +6,18 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	ingredient2 "github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite/ent/ingredient"
-	"github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite/ent/migrate"
-	pantry2 "github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite/ent/pantry"
-	recipe2 "github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite/ent/recipe"
-	recipeingredient2 "github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite/ent/recipeingredient"
 	"log"
+
+	"github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite/ent/migrate"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite/ent/ingredient"
+	"github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite/ent/pantry"
+	"github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite/ent/recipe"
+	"github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite/ent/recipeingredient"
 )
 
 // Client is the client that holds all ent builders.
@@ -281,7 +282,7 @@ func (c *IngredientClient) DeleteOne(i *Ingredient) *IngredientDeleteOne {
 
 // DeleteOneID returns a builder for deleting the given entity by its id.
 func (c *IngredientClient) DeleteOneID(id int) *IngredientDeleteOne {
-	builder := c.Delete().Where(ingredient2.ID(id))
+	builder := c.Delete().Where(ingredient.ID(id))
 	builder.mutation.id = &id
 	builder.mutation.op = OpDeleteOne
 	return &IngredientDeleteOne{builder}
@@ -298,7 +299,7 @@ func (c *IngredientClient) Query() *IngredientQuery {
 
 // Get returns a Ingredient entity by its id.
 func (c *IngredientClient) Get(ctx context.Context, id int) (*Ingredient, error) {
-	return c.Query().Where(ingredient2.ID(id)).Only(ctx)
+	return c.Query().Where(ingredient.ID(id)).Only(ctx)
 }
 
 // GetX is like Get, but panics if an error occurs.
@@ -316,9 +317,9 @@ func (c *IngredientClient) QueryPantry(i *Ingredient) *PantryQuery {
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := i.ID
 		step := sqlgraph.NewStep(
-			sqlgraph.From(ingredient2.Table, ingredient2.FieldID, id),
-			sqlgraph.To(pantry2.Table, pantry2.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, true, ingredient2.PantryTable, ingredient2.PantryColumn),
+			sqlgraph.From(ingredient.Table, ingredient.FieldID, id),
+			sqlgraph.To(pantry.Table, pantry.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, ingredient.PantryTable, ingredient.PantryColumn),
 		)
 		fromV = sqlgraph.Neighbors(i.driver.Dialect(), step)
 		return fromV, nil
@@ -332,9 +333,9 @@ func (c *IngredientClient) QueryRecipeingredient(i *Ingredient) *RecipeIngredien
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := i.ID
 		step := sqlgraph.NewStep(
-			sqlgraph.From(ingredient2.Table, ingredient2.FieldID, id),
-			sqlgraph.To(recipeingredient2.Table, recipeingredient2.FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, true, ingredient2.RecipeingredientTable, ingredient2.RecipeingredientPrimaryKey...),
+			sqlgraph.From(ingredient.Table, ingredient.FieldID, id),
+			sqlgraph.To(recipeingredient.Table, recipeingredient.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, true, ingredient.RecipeingredientTable, ingredient.RecipeingredientPrimaryKey...),
 		)
 		fromV = sqlgraph.Neighbors(i.driver.Dialect(), step)
 		return fromV, nil
@@ -431,7 +432,7 @@ func (c *PantryClient) DeleteOne(pa *Pantry) *PantryDeleteOne {
 
 // DeleteOneID returns a builder for deleting the given entity by its id.
 func (c *PantryClient) DeleteOneID(id int) *PantryDeleteOne {
-	builder := c.Delete().Where(pantry2.ID(id))
+	builder := c.Delete().Where(pantry.ID(id))
 	builder.mutation.id = &id
 	builder.mutation.op = OpDeleteOne
 	return &PantryDeleteOne{builder}
@@ -448,7 +449,7 @@ func (c *PantryClient) Query() *PantryQuery {
 
 // Get returns a Pantry entity by its id.
 func (c *PantryClient) Get(ctx context.Context, id int) (*Pantry, error) {
-	return c.Query().Where(pantry2.ID(id)).Only(ctx)
+	return c.Query().Where(pantry.ID(id)).Only(ctx)
 }
 
 // GetX is like Get, but panics if an error occurs.
@@ -466,9 +467,9 @@ func (c *PantryClient) QueryIngredient(pa *Pantry) *IngredientQuery {
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := pa.ID
 		step := sqlgraph.NewStep(
-			sqlgraph.From(pantry2.Table, pantry2.FieldID, id),
-			sqlgraph.To(ingredient2.Table, ingredient2.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, false, pantry2.IngredientTable, pantry2.IngredientColumn),
+			sqlgraph.From(pantry.Table, pantry.FieldID, id),
+			sqlgraph.To(ingredient.Table, ingredient.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, pantry.IngredientTable, pantry.IngredientColumn),
 		)
 		fromV = sqlgraph.Neighbors(pa.driver.Dialect(), step)
 		return fromV, nil
@@ -565,7 +566,7 @@ func (c *RecipeClient) DeleteOne(r *Recipe) *RecipeDeleteOne {
 
 // DeleteOneID returns a builder for deleting the given entity by its id.
 func (c *RecipeClient) DeleteOneID(id int) *RecipeDeleteOne {
-	builder := c.Delete().Where(recipe2.ID(id))
+	builder := c.Delete().Where(recipe.ID(id))
 	builder.mutation.id = &id
 	builder.mutation.op = OpDeleteOne
 	return &RecipeDeleteOne{builder}
@@ -582,7 +583,7 @@ func (c *RecipeClient) Query() *RecipeQuery {
 
 // Get returns a Recipe entity by its id.
 func (c *RecipeClient) Get(ctx context.Context, id int) (*Recipe, error) {
-	return c.Query().Where(recipe2.ID(id)).Only(ctx)
+	return c.Query().Where(recipe.ID(id)).Only(ctx)
 }
 
 // GetX is like Get, but panics if an error occurs.
@@ -600,9 +601,9 @@ func (c *RecipeClient) QueryRecipeingredient(r *Recipe) *RecipeIngredientQuery {
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := r.ID
 		step := sqlgraph.NewStep(
-			sqlgraph.From(recipe2.Table, recipe2.FieldID, id),
-			sqlgraph.To(recipeingredient2.Table, recipeingredient2.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, recipe2.RecipeingredientTable, recipe2.RecipeingredientColumn),
+			sqlgraph.From(recipe.Table, recipe.FieldID, id),
+			sqlgraph.To(recipeingredient.Table, recipeingredient.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, recipe.RecipeingredientTable, recipe.RecipeingredientColumn),
 		)
 		fromV = sqlgraph.Neighbors(r.driver.Dialect(), step)
 		return fromV, nil
@@ -699,7 +700,7 @@ func (c *RecipeIngredientClient) DeleteOne(ri *RecipeIngredient) *RecipeIngredie
 
 // DeleteOneID returns a builder for deleting the given entity by its id.
 func (c *RecipeIngredientClient) DeleteOneID(id int) *RecipeIngredientDeleteOne {
-	builder := c.Delete().Where(recipeingredient2.ID(id))
+	builder := c.Delete().Where(recipeingredient.ID(id))
 	builder.mutation.id = &id
 	builder.mutation.op = OpDeleteOne
 	return &RecipeIngredientDeleteOne{builder}
@@ -716,7 +717,7 @@ func (c *RecipeIngredientClient) Query() *RecipeIngredientQuery {
 
 // Get returns a RecipeIngredient entity by its id.
 func (c *RecipeIngredientClient) Get(ctx context.Context, id int) (*RecipeIngredient, error) {
-	return c.Query().Where(recipeingredient2.ID(id)).Only(ctx)
+	return c.Query().Where(recipeingredient.ID(id)).Only(ctx)
 }
 
 // GetX is like Get, but panics if an error occurs.
@@ -734,9 +735,9 @@ func (c *RecipeIngredientClient) QueryRecipe(ri *RecipeIngredient) *RecipeQuery 
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := ri.ID
 		step := sqlgraph.NewStep(
-			sqlgraph.From(recipeingredient2.Table, recipeingredient2.FieldID, id),
-			sqlgraph.To(recipe2.Table, recipe2.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, recipeingredient2.RecipeTable, recipeingredient2.RecipeColumn),
+			sqlgraph.From(recipeingredient.Table, recipeingredient.FieldID, id),
+			sqlgraph.To(recipe.Table, recipe.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, recipeingredient.RecipeTable, recipeingredient.RecipeColumn),
 		)
 		fromV = sqlgraph.Neighbors(ri.driver.Dialect(), step)
 		return fromV, nil
@@ -750,9 +751,9 @@ func (c *RecipeIngredientClient) QueryIngredient(ri *RecipeIngredient) *Ingredie
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := ri.ID
 		step := sqlgraph.NewStep(
-			sqlgraph.From(recipeingredient2.Table, recipeingredient2.FieldID, id),
-			sqlgraph.To(ingredient2.Table, ingredient2.FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, false, recipeingredient2.IngredientTable, recipeingredient2.IngredientPrimaryKey...),
+			sqlgraph.From(recipeingredient.Table, recipeingredient.FieldID, id),
+			sqlgraph.To(ingredient.Table, ingredient.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, false, recipeingredient.IngredientTable, recipeingredient.IngredientPrimaryKey...),
 		)
 		fromV = sqlgraph.Neighbors(ri.driver.Dialect(), step)
 		return fromV, nil
