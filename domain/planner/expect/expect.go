@@ -61,7 +61,7 @@ func False(t *testing.T, got bool) {
 	}
 }
 
-func NoErr(t *testing.T, err error) {
+func NoErr(t testing.TB, err error) {
 	t.Helper()
 	if err != nil {
 		t.Fatal(err)

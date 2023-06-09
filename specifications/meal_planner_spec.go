@@ -10,10 +10,8 @@ import (
 )
 
 type (
-	Cleanup func()
-
 	MealPlanner struct {
-		CreateDependencies func() (planner.RecipeBook, planner.Pantry, planner.MealPlanner, Cleanup)
+		CreateDependencies func() (planner.RecipeBook, planner.Pantry, planner.MealPlanner)
 	}
 )
 
@@ -22,11 +20,10 @@ func (m MealPlanner) Test(t *testing.T) {
 
 		t.Run("when we have ingredients for a meal, we can schedule it", func(t *testing.T) {
 			var (
-				ctx                                       = context.Background()
-				lasagna                                   = plannertest.RandomRecipe()
-				recipeBook, pantry, mealPlanner, teardown = m.CreateDependencies()
+				ctx                             = context.Background()
+				lasagna                         = plannertest.RandomRecipe()
+				recipeBook, pantry, mealPlanner = m.CreateDependencies()
 			)
-			t.Cleanup(teardown)
 
 			expect.NoErr(t, recipeBook.AddRecipes(ctx, lasagna))
 			expect.NoErr(t, pantry.Store(ctx, lasagna.Ingredients...))
