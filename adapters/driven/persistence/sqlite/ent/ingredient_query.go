@@ -6,15 +6,15 @@ import (
 	"context"
 	"database/sql/driver"
 	"fmt"
+	"github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite/ent/ingredient"
+	pantry2 "github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite/ent/pantry"
+	"github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite/ent/predicate"
+	"github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite/ent/recipeingredient"
 	"math"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite/ent/ingredient"
-	"github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite/ent/pantry"
-	"github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite/ent/predicate"
-	"github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite/ent/recipeingredient"
 )
 
 // IngredientQuery is the builder for querying Ingredient entities.
@@ -76,7 +76,7 @@ func (iq *IngredientQuery) QueryPantry() *PantryQuery {
 		}
 		step := sqlgraph.NewStep(
 			sqlgraph.From(ingredient.Table, ingredient.FieldID, selector),
-			sqlgraph.To(pantry.Table, pantry.FieldID),
+			sqlgraph.To(pantry2.Table, pantry2.FieldID),
 			sqlgraph.Edge(sqlgraph.O2O, true, ingredient.PantryTable, ingredient.PantryColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(iq.driver.Dialect(), step)
@@ -471,7 +471,7 @@ func (iq *IngredientQuery) loadPantry(ctx context.Context, query *PantryQuery, n
 	if len(ids) == 0 {
 		return nil
 	}
-	query.Where(pantry.IDIn(ids...))
+	query.Where(pantry2.IDIn(ids...))
 	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err

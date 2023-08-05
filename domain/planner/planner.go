@@ -2,22 +2,16 @@ package planner
 
 import (
 	"context"
+	"fmt"
 	"github.com/quii/go-fakes-and-contracts/domain/ingredients"
 	"github.com/quii/go-fakes-and-contracts/domain/recipe"
 	"time"
 )
 
-type (
-	MealPlanner interface {
-		ScheduleMeal(context.Context, recipe.Recipe, time.Time) error
-		SuggestRecipes(context.Context) (recipe.Recipes, error)
-	}
-
-	Planner struct {
-		recipeBook RecipeBook
-		pantry     Pantry
-	}
-)
+type Planner struct {
+	recipeBook RecipeBook
+	pantry     Pantry
+}
 
 func New(recipes RecipeBook, ingredientStore Pantry) *Planner {
 	return &Planner{recipeBook: recipes, pantry: ingredientStore}
@@ -58,6 +52,7 @@ func (p Planner) SuggestRecipes(ctx context.Context) (recipe.Recipes, error) {
 	return suggestions, nil
 }
 
+// returns slice of missing ingredients
 func haveIngredients(availableIngredients ingredients.Ingredients, recipe recipe.Recipe) (hasIngredients bool, missing ingredients.Ingredients) {
 	for _, ingredient := range recipe.Ingredients {
 		if !availableIngredients.Has(ingredient) {
@@ -68,4 +63,12 @@ func haveIngredients(availableIngredients ingredients.Ingredients, recipe recipe
 		return false, missing
 	}
 	return true, nil
+}
+
+type ErrorMissingIngredients struct {
+	MissingIngredients ingredients.Ingredients
+}
+
+func (e ErrorMissingIngredients) Error() string {
+	return fmt.Sprintf("missing ingredients: %v", e.MissingIngredients)
 }

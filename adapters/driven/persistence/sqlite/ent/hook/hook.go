@@ -5,17 +5,16 @@ package hook
 import (
 	"context"
 	"fmt"
-
-	"github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite/ent"
+	ent2 "github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite/ent"
 )
 
 // The IngredientFunc type is an adapter to allow the use of ordinary
 // function as Ingredient mutator.
-type IngredientFunc func(context.Context, *ent.IngredientMutation) (ent.Value, error)
+type IngredientFunc func(context.Context, *ent2.IngredientMutation) (ent2.Value, error)
 
 // Mutate calls f(ctx, m).
-func (f IngredientFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
-	if mv, ok := m.(*ent.IngredientMutation); ok {
+func (f IngredientFunc) Mutate(ctx context.Context, m ent2.Mutation) (ent2.Value, error) {
+	if mv, ok := m.(*ent2.IngredientMutation); ok {
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.IngredientMutation", m)
@@ -23,11 +22,11 @@ func (f IngredientFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, 
 
 // The PantryFunc type is an adapter to allow the use of ordinary
 // function as Pantry mutator.
-type PantryFunc func(context.Context, *ent.PantryMutation) (ent.Value, error)
+type PantryFunc func(context.Context, *ent2.PantryMutation) (ent2.Value, error)
 
 // Mutate calls f(ctx, m).
-func (f PantryFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
-	if mv, ok := m.(*ent.PantryMutation); ok {
+func (f PantryFunc) Mutate(ctx context.Context, m ent2.Mutation) (ent2.Value, error) {
+	if mv, ok := m.(*ent2.PantryMutation); ok {
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PantryMutation", m)
@@ -35,11 +34,11 @@ func (f PantryFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, erro
 
 // The RecipeFunc type is an adapter to allow the use of ordinary
 // function as Recipe mutator.
-type RecipeFunc func(context.Context, *ent.RecipeMutation) (ent.Value, error)
+type RecipeFunc func(context.Context, *ent2.RecipeMutation) (ent2.Value, error)
 
 // Mutate calls f(ctx, m).
-func (f RecipeFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
-	if mv, ok := m.(*ent.RecipeMutation); ok {
+func (f RecipeFunc) Mutate(ctx context.Context, m ent2.Mutation) (ent2.Value, error) {
+	if mv, ok := m.(*ent2.RecipeMutation); ok {
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.RecipeMutation", m)
@@ -47,22 +46,22 @@ func (f RecipeFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, erro
 
 // The RecipeIngredientFunc type is an adapter to allow the use of ordinary
 // function as RecipeIngredient mutator.
-type RecipeIngredientFunc func(context.Context, *ent.RecipeIngredientMutation) (ent.Value, error)
+type RecipeIngredientFunc func(context.Context, *ent2.RecipeIngredientMutation) (ent2.Value, error)
 
 // Mutate calls f(ctx, m).
-func (f RecipeIngredientFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
-	if mv, ok := m.(*ent.RecipeIngredientMutation); ok {
+func (f RecipeIngredientFunc) Mutate(ctx context.Context, m ent2.Mutation) (ent2.Value, error) {
+	if mv, ok := m.(*ent2.RecipeIngredientMutation); ok {
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.RecipeIngredientMutation", m)
 }
 
 // Condition is a hook condition function.
-type Condition func(context.Context, ent.Mutation) bool
+type Condition func(context.Context, ent2.Mutation) bool
 
 // And groups conditions with the AND operator.
 func And(first, second Condition, rest ...Condition) Condition {
-	return func(ctx context.Context, m ent.Mutation) bool {
+	return func(ctx context.Context, m ent2.Mutation) bool {
 		if !first(ctx, m) || !second(ctx, m) {
 			return false
 		}
@@ -77,7 +76,7 @@ func And(first, second Condition, rest ...Condition) Condition {
 
 // Or groups conditions with the OR operator.
 func Or(first, second Condition, rest ...Condition) Condition {
-	return func(ctx context.Context, m ent.Mutation) bool {
+	return func(ctx context.Context, m ent2.Mutation) bool {
 		if first(ctx, m) || second(ctx, m) {
 			return true
 		}
@@ -92,21 +91,21 @@ func Or(first, second Condition, rest ...Condition) Condition {
 
 // Not negates a given condition.
 func Not(cond Condition) Condition {
-	return func(ctx context.Context, m ent.Mutation) bool {
+	return func(ctx context.Context, m ent2.Mutation) bool {
 		return !cond(ctx, m)
 	}
 }
 
 // HasOp is a condition testing mutation operation.
-func HasOp(op ent.Op) Condition {
-	return func(_ context.Context, m ent.Mutation) bool {
+func HasOp(op ent2.Op) Condition {
+	return func(_ context.Context, m ent2.Mutation) bool {
 		return m.Op().Is(op)
 	}
 }
 
 // HasAddedFields is a condition validating `.AddedField` on fields.
 func HasAddedFields(field string, fields ...string) Condition {
-	return func(_ context.Context, m ent.Mutation) bool {
+	return func(_ context.Context, m ent2.Mutation) bool {
 		if _, exists := m.AddedField(field); !exists {
 			return false
 		}
@@ -121,7 +120,7 @@ func HasAddedFields(field string, fields ...string) Condition {
 
 // HasClearedFields is a condition validating `.FieldCleared` on fields.
 func HasClearedFields(field string, fields ...string) Condition {
-	return func(_ context.Context, m ent.Mutation) bool {
+	return func(_ context.Context, m ent2.Mutation) bool {
 		if exists := m.FieldCleared(field); !exists {
 			return false
 		}
@@ -136,7 +135,7 @@ func HasClearedFields(field string, fields ...string) Condition {
 
 // HasFields is a condition validating `.Field` on fields.
 func HasFields(field string, fields ...string) Condition {
-	return func(_ context.Context, m ent.Mutation) bool {
+	return func(_ context.Context, m ent2.Mutation) bool {
 		if _, exists := m.Field(field); !exists {
 			return false
 		}
@@ -152,9 +151,9 @@ func HasFields(field string, fields ...string) Condition {
 // If executes the given hook under condition.
 //
 //	hook.If(ComputeAverage, And(HasFields(...), HasAddedFields(...)))
-func If(hk ent.Hook, cond Condition) ent.Hook {
-	return func(next ent.Mutator) ent.Mutator {
-		return ent.MutateFunc(func(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+func If(hk ent2.Hook, cond Condition) ent2.Hook {
+	return func(next ent2.Mutator) ent2.Mutator {
+		return ent2.MutateFunc(func(ctx context.Context, m ent2.Mutation) (ent2.Value, error) {
 			if cond(ctx, m) {
 				return hk(next).Mutate(ctx, m)
 			}
@@ -166,21 +165,21 @@ func If(hk ent.Hook, cond Condition) ent.Hook {
 // On executes the given hook only for the given operation.
 //
 //	hook.On(Log, ent.Delete|ent.Create)
-func On(hk ent.Hook, op ent.Op) ent.Hook {
+func On(hk ent2.Hook, op ent2.Op) ent2.Hook {
 	return If(hk, HasOp(op))
 }
 
 // Unless skips the given hook only for the given operation.
 //
 //	hook.Unless(Log, ent.Update|ent.UpdateOne)
-func Unless(hk ent.Hook, op ent.Op) ent.Hook {
+func Unless(hk ent2.Hook, op ent2.Op) ent2.Hook {
 	return If(hk, Not(HasOp(op)))
 }
 
 // FixedError is a hook returning a fixed error.
-func FixedError(err error) ent.Hook {
-	return func(ent.Mutator) ent.Mutator {
-		return ent.MutateFunc(func(context.Context, ent.Mutation) (ent.Value, error) {
+func FixedError(err error) ent2.Hook {
+	return func(ent2.Mutator) ent2.Mutator {
+		return ent2.MutateFunc(func(context.Context, ent2.Mutation) (ent2.Value, error) {
 			return nil, err
 		})
 	}
@@ -193,7 +192,7 @@ func FixedError(err error) ent.Hook {
 //			Reject(ent.Delete|ent.Update),
 //		}
 //	}
-func Reject(op ent.Op) ent.Hook {
+func Reject(op ent2.Op) ent2.Hook {
 	hk := FixedError(fmt.Errorf("%s operation is not allowed", op))
 	return On(hk, op)
 }
@@ -201,17 +200,17 @@ func Reject(op ent.Op) ent.Hook {
 // Chain acts as a list of hooks and is effectively immutable.
 // Once created, it will always hold the same set of hooks in the same order.
 type Chain struct {
-	hooks []ent.Hook
+	hooks []ent2.Hook
 }
 
 // NewChain creates a new chain of hooks.
-func NewChain(hooks ...ent.Hook) Chain {
-	return Chain{append([]ent.Hook(nil), hooks...)}
+func NewChain(hooks ...ent2.Hook) Chain {
+	return Chain{append([]ent2.Hook(nil), hooks...)}
 }
 
 // Hook chains the list of hooks and returns the final hook.
-func (c Chain) Hook() ent.Hook {
-	return func(mutator ent.Mutator) ent.Mutator {
+func (c Chain) Hook() ent2.Hook {
+	return func(mutator ent2.Mutator) ent2.Mutator {
 		for i := len(c.hooks) - 1; i >= 0; i-- {
 			mutator = c.hooks[i](mutator)
 		}
@@ -221,8 +220,8 @@ func (c Chain) Hook() ent.Hook {
 
 // Append extends a chain, adding the specified hook
 // as the last ones in the mutation flow.
-func (c Chain) Append(hooks ...ent.Hook) Chain {
-	newHooks := make([]ent.Hook, 0, len(c.hooks)+len(hooks))
+func (c Chain) Append(hooks ...ent2.Hook) Chain {
+	newHooks := make([]ent2.Hook, 0, len(c.hooks)+len(hooks))
 	newHooks = append(newHooks, c.hooks...)
 	newHooks = append(newHooks, hooks...)
 	return Chain{newHooks}

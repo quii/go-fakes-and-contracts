@@ -2,8 +2,8 @@ package planner
 
 import (
 	"context"
-	"github.com/quii/go-fakes-and-contracts/domain/planner/expect"
-	"github.com/quii/go-fakes-and-contracts/domain/planner/plannertest"
+	"github.com/quii/go-fakes-and-contracts/domain/planner/internal/expect"
+	"github.com/quii/go-fakes-and-contracts/domain/planner/internal/plannertest"
 	"github.com/quii/go-fakes-and-contracts/domain/recipe"
 	"testing"
 	"time"
@@ -23,7 +23,7 @@ func (c CalendarContract) Test(t *testing.T) {
 		var (
 			ctx         = context.Background()
 			someRecipes = plannertest.RandomRecipes()
-			tomorrow    = time.Now().Add(24 * time.Hour)
+			tomorrow    = time.Now()
 			sut         = c.NewCalendar()
 		)
 		for _, r := range someRecipes {

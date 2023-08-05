@@ -6,15 +6,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"sync"
-
-	"entgo.io/ent"
-	"entgo.io/ent/dialect/sql"
 	"github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite/ent/ingredient"
 	"github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite/ent/pantry"
 	"github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite/ent/predicate"
 	"github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite/ent/recipe"
 	"github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite/ent/recipeingredient"
+	"sync"
+
+	"entgo.io/ent"
+	"entgo.io/ent/dialect/sql"
 )
 
 const (

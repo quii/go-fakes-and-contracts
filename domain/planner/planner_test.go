@@ -2,13 +2,12 @@ package planner_test
 
 import (
 	"context"
-	"github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/inmemory"
-	"github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite"
+	inmemory2 "github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/inmemory"
+	sqlite2 "github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite"
 	"github.com/quii/go-fakes-and-contracts/domain/ingredients"
 	"github.com/quii/go-fakes-and-contracts/domain/planner"
-	"github.com/quii/go-fakes-and-contracts/domain/planner/expect"
-	"github.com/quii/go-fakes-and-contracts/domain/planner/plannertest"
-	"github.com/quii/go-fakes-and-contracts/specifications"
+	"github.com/quii/go-fakes-and-contracts/domain/planner/internal/expect"
+	"github.com/quii/go-fakes-and-contracts/domain/planner/internal/plannertest"
 	"testing"
 	"time"
 )
@@ -16,15 +15,9 @@ import (
 func TestRecipeMatcher(t *testing.T) {
 	// for local, snappy integration test with a fake (which we can be confident is correct due to it conforming to the store contract)
 	t.Run("with in memory store", func(t *testing.T) {
-		specifications.MealPlanner{CreateDependencies: func() (planner.RecipeBook, planner.Pantry, planner.MealPlanner, specifications.Cleanup) {
-			book := inmemory.NewRecipeStore()
-			pantry := inmemory.NewPantry()
-			return book, pantry, planner.New(book, pantry), func() {}
-		}}.Test(t)
-
 		RecipeMatcherTest{
 			CreateDependencies: func() (planner.RecipeBook, planner.Pantry, Cleanup) {
-				return inmemory.NewRecipeStore(), inmemory.NewPantry(), func() {
+				return inmemory2.NewRecipeStore(), inmemory2.NewPantry(), func() {
 					// nothing to clean up
 				}
 			},
@@ -34,17 +27,10 @@ func TestRecipeMatcher(t *testing.T) {
 	// we can run a broader integration test with a "real" db if we wish, using this contract approach
 	t.Run("with sqlite", func(t *testing.T) {
 		if !testing.Short() {
-			specifications.MealPlanner{CreateDependencies: func() (planner.RecipeBook, planner.Pantry, planner.MealPlanner, specifications.Cleanup) {
-				client := sqlite.NewSQLiteClient()
-				book := sqlite.NewRecipeStore(client)
-				pantry := sqlite.NewPantry(client)
-				return book, pantry, planner.New(book, pantry), func() {}
-			}}.Test(t)
-
 			RecipeMatcherTest{
 				CreateDependencies: func() (planner.RecipeBook, planner.Pantry, Cleanup) {
-					client := sqlite.NewSQLiteClient()
-					return sqlite.NewRecipeStore(client), sqlite.NewPantry(client), func() {
+					client := sqlite2.NewSQLiteClient()
+					return sqlite2.NewRecipeStore(client), sqlite2.NewPantry(client), func() {
 						if err := client.Close(); err != nil {
 							t.Error(err)
 						}
@@ -64,7 +50,7 @@ type RecipeMatcherTest struct {
 func (r RecipeMatcherTest) Test(t *testing.T) {
 	t.Run("planning meals", func(t *testing.T) {
 
-		t.Run("when we have ingredients for a meal, we can schedule it", func(t *testing.T) {
+		t.Run("happy path, have ingredients for a recipe, schedule it, update pantry", func(t *testing.T) {
 			var (
 				ctx                          = context.Background()
 				lasagna                      = plannertest.RandomRecipe()
@@ -76,11 +62,7 @@ func (r RecipeMatcherTest) Test(t *testing.T) {
 			expect.NoErr(t, recipeBook.AddRecipes(ctx, lasagna))
 			expect.NoErr(t, pantry.Store(ctx, lasagna.Ingredients...))
 
-			recipes, err := sut.SuggestRecipes(ctx)
-			expect.NoErr(t, err)
-			expect.Len(t, recipes, 1)
-
-			expect.NoErr(t, sut.ScheduleMeal(ctx, recipes[0], time.Now()))
+			expect.NoErr(t, sut.ScheduleMeal(ctx, lasagna, time.Now()))
 			remainingIngredients, err := pantry.GetIngredients(ctx)
 			expect.NoErr(t, err)
 			expect.Equal(t, 0, len(remainingIngredients))
@@ -148,7 +130,7 @@ func (r RecipeMatcherTest) Test(t *testing.T) {
 
 			recipes, err := sut.SuggestRecipes(ctx)
 			expect.NoErr(t, err)
-			plannertest.ExpectDoesntHaveRecipe(t, recipes, pie)
+			plannertest.AssertDoesntHaveRecipe(t, recipes, pie)
 		})
 
 		t.Run("if we have the ingredients for a recipe we can make it", func(t *testing.T) {
@@ -166,8 +148,8 @@ func (r RecipeMatcherTest) Test(t *testing.T) {
 
 			recipes, err := sut.SuggestRecipes(ctx)
 			expect.NoErr(t, err)
-			plannertest.ExpectHasRecipe(t, recipes, bananaBread)
-			plannertest.ExpectDoesntHaveRecipe(t, recipes, aRecipeWeWontHaveIngredientsFor)
+			plannertest.AssertHasRecipe(t, recipes, bananaBread)
+			plannertest.AssertDoesntHaveRecipe(t, recipes, aRecipeWeWontHaveIngredientsFor)
 		})
 
 		t.Run("if we have ingredients for 2 recipes, we can make both", func(t *testing.T) {
@@ -186,8 +168,8 @@ func (r RecipeMatcherTest) Test(t *testing.T) {
 
 			recipes, err := sut.SuggestRecipes(ctx)
 			expect.NoErr(t, err)
-			plannertest.ExpectHasRecipe(t, recipes, bananaBread)
-			plannertest.ExpectHasRecipe(t, recipes, bananaMilkshake)
+			plannertest.AssertHasRecipe(t, recipes, bananaBread)
+			plannertest.AssertHasRecipe(t, recipes, bananaMilkshake)
 		})
 	})
 }
