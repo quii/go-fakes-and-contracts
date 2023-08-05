@@ -4,12 +4,12 @@ package ent
 
 import (
 	"context"
-	"github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite/ent/ingredient"
-	"github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite/ent/predicate"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite/ent/ingredient"
+	"github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite/ent/predicate"
 )
 
 // IngredientDelete is the builder for deleting a Ingredient entity.

@@ -2,7 +2,7 @@
 
 package runtime
 
-// The schema-stitching logic is generated in github.com/quii/go-fakes-and-contracts/adapters/persistence/sqlite/ent/runtime.go
+// The schema-stitching logic is generated in github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite/ent/runtime.go
 
 const (
 	Version = "v0.12.3"                                         // Version of ent codegen.

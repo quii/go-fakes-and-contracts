@@ -6,13 +6,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite/ent/ingredient"
-	"github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite/ent/recipe"
-	"github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite/ent/recipeingredient"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite/ent/ingredient"
+	"github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite/ent/recipe"
+	"github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite/ent/recipeingredient"
 )
 
 // RecipeIngredientCreate is the builder for creating a RecipeIngredient entity.

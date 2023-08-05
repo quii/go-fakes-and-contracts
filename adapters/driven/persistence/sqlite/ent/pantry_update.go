@@ -6,13 +6,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite/ent/ingredient"
-	"github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite/ent/pantry"
-	"github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite/ent/predicate"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite/ent/ingredient"
+	"github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite/ent/pantry"
+	"github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite/ent/predicate"
 )
 
 // PantryUpdate is the builder for updating Pantry entities.

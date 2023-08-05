@@ -6,15 +6,15 @@ import (
 	"context"
 	"database/sql/driver"
 	"fmt"
-	"github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite/ent/ingredient"
-	"github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite/ent/predicate"
-	recipe2 "github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite/ent/recipe"
-	"github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite/ent/recipeingredient"
 	"math"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite/ent/ingredient"
+	"github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite/ent/predicate"
+	"github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite/ent/recipe"
+	"github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite/ent/recipeingredient"
 )
 
 // RecipeIngredientQuery is the builder for querying RecipeIngredient entities.
@@ -76,7 +76,7 @@ func (riq *RecipeIngredientQuery) QueryRecipe() *RecipeQuery {
 		}
 		step := sqlgraph.NewStep(
 			sqlgraph.From(recipeingredient.Table, recipeingredient.FieldID, selector),
-			sqlgraph.To(recipe2.Table, recipe2.FieldID),
+			sqlgraph.To(recipe.Table, recipe.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, recipeingredient.RecipeTable, recipeingredient.RecipeColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(riq.driver.Dialect(), step)
@@ -469,7 +469,7 @@ func (riq *RecipeIngredientQuery) loadRecipe(ctx context.Context, query *RecipeQ
 	if len(ids) == 0 {
 		return nil
 	}
-	query.Where(recipe2.IDIn(ids...))
+	query.Where(recipe.IDIn(ids...))
 	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err
