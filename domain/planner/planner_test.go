@@ -2,6 +2,7 @@ package planner_test
 
 import (
 	"context"
+	"errors"
 	inmemory2 "github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/inmemory"
 	sqlite2 "github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite"
 	"github.com/quii/go-fakes-and-contracts/domain/ingredients"
@@ -87,6 +88,27 @@ func (r RecipeMatcherTest) Test(t *testing.T) {
 			expect.DeepEqual(t, planner.ErrorMissingIngredients{
 				MissingIngredients: lasagna.Ingredients,
 			}, missingIngredientsErr)
+		})
+
+		t.Run("when recipeBook fails to get ingredients, we get an error", func(t *testing.T) {
+			var (
+				ctx                          = context.Background()
+				lasagna                      = plannertest.RandomRecipe()
+				recipeBook, pantry, teardown = r.CreateDependencies()
+				failingPantry                = planner.NewPantryDelegate(pantry)
+			)
+			t.Cleanup(teardown)
+
+			failingPantry.GetIngredientsFunc = func(ctx context.Context) (ingredients.Ingredients, error) {
+				return nil, errors.New("oh no")
+			}
+
+			sut := planner.New(recipeBook, failingPantry)
+			expect.NoErr(t, recipeBook.AddRecipes(ctx, lasagna))
+			expect.NoErr(t, pantry.Store(ctx, lasagna.Ingredients...))
+
+			err := sut.ScheduleMeal(ctx, lasagna, time.Now())
+			expect.Err(t, err)
 		})
 
 		t.Run("returns the specific ingredients missing if you try to schedule a meal with some missing ingredients", func(t *testing.T) {
