@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestInMemoryIngredientStore(t *testing.T) {
+func TestInMemoryPantry(t *testing.T) {
 	planner.PantryContract{
 		NewPantry: func() planner.Pantry {
 			return inmemory.NewPantry()
