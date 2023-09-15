@@ -1,7 +1,7 @@
 package sqlite_test
 
 import (
-	sqlite2 "github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite"
+	"github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/sqlite"
 	"github.com/quii/go-fakes-and-contracts/domain/planner"
 	"testing"
 )
@@ -17,7 +17,7 @@ Try and compile, it fails, implement interface, try running test, it'll fail, no
 */
 
 func TestSQLitePantry(t *testing.T) {
-	client := sqlite2.NewSQLiteClient()
+	client := sqlite.NewSQLiteClient()
 	t.Cleanup(func() {
 		if err := client.Close(); err != nil {
 			t.Error(err)
@@ -26,7 +26,7 @@ func TestSQLitePantry(t *testing.T) {
 
 	planner.PantryContract{
 		NewPantry: func() planner.Pantry {
-			return sqlite2.NewPantry(client)
+			return sqlite.NewPantry(client)
 		},
 	}.Test(t)
 }
