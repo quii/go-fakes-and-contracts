@@ -13,10 +13,10 @@ import (
 	"time"
 )
 
-func TestRecipeMatcher(t *testing.T) {
+func TestRecipePlanner(t *testing.T) {
 	// for local, snappy integration test with a fake (which we can be confident is correct due to it conforming to the store contract)
 	t.Run("with in memory store", func(t *testing.T) {
-		RecipeMatcherTest{
+		RecipePlannerTest{
 			CreateDependencies: func() (planner.RecipeBook, planner.Pantry, Cleanup) {
 				return inmemory.NewRecipeStore(), inmemory.NewPantry(), func() {
 					// nothing to clean up
@@ -28,7 +28,7 @@ func TestRecipeMatcher(t *testing.T) {
 	// we can run a broader integration test with a "real" db if we wish, using this contract approach
 	t.Run("with sqlite", func(t *testing.T) {
 		if !testing.Short() {
-			RecipeMatcherTest{
+			RecipePlannerTest{
 				CreateDependencies: func() (planner.RecipeBook, planner.Pantry, Cleanup) {
 					client := sqlite.NewSQLiteClient()
 					return sqlite.NewRecipeStore(client), sqlite.NewPantry(client), func() {
@@ -44,11 +44,11 @@ func TestRecipeMatcher(t *testing.T) {
 
 type Cleanup func()
 
-type RecipeMatcherTest struct {
+type RecipePlannerTest struct {
 	CreateDependencies func() (planner.RecipeBook, planner.Pantry, Cleanup)
 }
 
-func (r RecipeMatcherTest) Test(t *testing.T) {
+func (r RecipePlannerTest) Test(t *testing.T) {
 	t.Run("planning meals", func(t *testing.T) {
 
 		t.Run("happy path, have ingredients for a recipe, schedule it, update pantry", func(t *testing.T) {
