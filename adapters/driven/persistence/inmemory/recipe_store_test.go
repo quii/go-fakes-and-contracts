@@ -1,12 +1,14 @@
-package inmemory
+package inmemory_test
 
 import (
-	"github.com/quii/go-fakes-and-contracts/domain/planner"
 	"testing"
+
+	"github.com/quii/go-fakes-and-contracts/adapters/driven/persistence/inmemory"
+	"github.com/quii/go-fakes-and-contracts/domain/planner"
 )
 
 func TestInMemoryRecipeStore(t *testing.T) {
 	planner.RecipeBookContract{NewBook: func() planner.RecipeBook {
-		return NewRecipeStore()
+		return inmemory.NewRecipeStore()
 	}}.Test(t)
 }
